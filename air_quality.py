@@ -51,12 +51,10 @@ plt.tight_layout()
 
 #actually do the reading
 max_points = 100
-sample_count = 0
 print("Start reading data")
 try:
     while True:
         sample = PLANTOWER.read()
-        sample_count += 1
 
         # Append new data to the lists
         time_data.append(sample.timestamp)
@@ -87,6 +85,6 @@ try:
         fig.canvas.flush_events()
 
         # Print the number of samples read
-        print(f"\rSamples read: {sample_count}", end="", flush=True)
+        print(f"Time: {sample.timestamp}, PM1.0: {sample.pm10_cf1}, PM2.5: {sample.pm25_cf1}, PM10: {sample.pm100_cf1}")
 except KeyboardInterrupt:
     print("Real-time plotting stopped.")
