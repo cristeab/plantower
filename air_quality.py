@@ -29,17 +29,26 @@ if new_serial_port != serial_port:
 
 # Initialize empty lists to store time and PM concentration data
 time_data = []
+
 pm1_cf1 = []
 pm2_5_cf1 = []
 pm10_cf1 = []
+
+pm1_std = []
+pm2_5_std = []
+pm10_std = []
 
 # Set up the plot
 plt.ion()  # Turn on interactive mode for real-time updates
 fig, ax = plt.subplots(figsize=(10, 6))
 
-line_pm1, = ax.plot([], [], label='PM1.0', marker='o')
-line_pm2_5, = ax.plot([], [], label='PM2.5', marker='o')
-line_pm10, = ax.plot([], [], label='PM10', marker='o')
+line_pm1_cf1, = ax.plot([], [], label='PM1.0 (CF=1)', marker='o', color='blue')
+line_pm2_5_cf1, = ax.plot([], [], label='PM2.5 (CF=1)', marker='o', color='green')
+line_pm10_cf1, = ax.plot([], [], label='PM10 (CF=1)', marker='o', color='red')
+
+line_pm1_std, = ax.plot([], [], label='PM1.0 (ATM)', marker='o', color='blue', linestyle='--')
+line_pm2_5_std, = ax.plot([], [], label='PM2.5 (ATM)', marker='o', color='green', linestyle='--')
+line_pm10_std, = ax.plot([], [], label='PM10 (ATM)', marker='o', color='red', linestyle='--')
 
 ax.set_xlabel('Time')
 ax.set_ylabel('Concentration (μg/m³)')
@@ -62,23 +71,38 @@ try:
 
         # Append new data to the lists
         time_data.append(sample.timestamp)
+
         pm1_cf1.append(sample.pm10_cf1)
         pm2_5_cf1.append(sample.pm25_cf1)
         pm10_cf1.append(sample.pm100_cf1)
+
+        pm1_std.append(sample.pm10_std)
+        pm2_5_std.append(sample.pm25_std)
+        pm10_std.append(sample.pm100_std)
 
         if len(time_data) > max_points:
                 time_data = time_data[-max_points:]
                 pm1_cf1 = pm1_cf1[-max_points:]
                 pm2_5_cf1 = pm2_5_cf1[-max_points:]
                 pm10_cf1 = pm10_cf1[-max_points:]
+                pm1_std = pm1_std[-max_points:]
+                pm2_5_std = pm2_5_std[-max_points:]
+                pm10_std = pm10_std[-max_points:]
 
         # Update the plot data
-        line_pm1.set_xdata(time_data)
-        line_pm1.set_ydata(pm1_cf1)
-        line_pm2_5.set_xdata(time_data)
-        line_pm2_5.set_ydata(pm2_5_cf1)
-        line_pm10.set_xdata(time_data)
-        line_pm10.set_ydata(pm10_cf1)
+        line_pm1_cf1.set_xdata(time_data)
+        line_pm1_cf1.set_ydata(pm1_cf1)
+        line_pm2_5_cf1.set_xdata(time_data)
+        line_pm2_5_cf1.set_ydata(pm2_5_cf1)
+        line_pm10_cf1.set_xdata(time_data)
+        line_pm10_cf1.set_ydata(pm10_cf1)
+
+        line_pm1_std.set_xdata(time_data)
+        line_pm1_std.set_ydata(pm1_std)
+        line_pm2_5_std.set_xdata(time_data)
+        line_pm2_5_std.set_ydata(pm2_5_std)
+        line_pm10_std.set_xdata(time_data)
+        line_pm10_std.set_ydata(pm10_std)
 
         # Adjust plot limits dynamically
         ax.relim()
