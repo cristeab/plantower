@@ -6,10 +6,12 @@
 import time
 import plantower
 from utils import find_serial_port
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
+matplotlib.use('TkAgg')
 #  test code for active mode
 serial_port = find_serial_port()
 PLANTOWER = plantower.Plantower(serial_port)
@@ -86,5 +88,7 @@ try:
 
         # Print the number of samples read
         print(f"Time: {sample.timestamp}, PM1.0: {sample.pm10_cf1}, PM2.5: {sample.pm25_cf1}, PM10: {sample.pm100_cf1}")
+        print(f"PM1.0: {sample.pm10_std}, PM2.5: {sample.pm25_std}, PM10: {sample.pm100_std}")
+        print(f"0.3 um: {sample.gr03um}, 0.5 um: {sample.gr05um}, 10 um: {sample.gr10um}, 25 um: {sample.gr25um}, 50 um: {sample.gr50um}, 100 um: {sample.gr100um}")
 except KeyboardInterrupt:
     print("Real-time plotting stopped.")
