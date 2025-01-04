@@ -3,19 +3,10 @@
     Basic test script to demonstrate active mode of the plantower
 """
 
-from argparse import ArgumentParser
 import time
 import plantower
 from utils import find_serial_port
 
-
-PARSER = ArgumentParser(
-        description="Test plantower code in active mode")
-PARSER.add_argument(
-    "port",
-    action="store",
-    help="The serial port to use")
-ARGS = PARSER.parse_args()
 
 #  test code for active mode
 serial_port = find_serial_port()
@@ -32,4 +23,5 @@ if new_serial_port != serial_port:
     PLANTOWER = plantower.Plantower(new_serial_port)
 
 #actually do the reading
-print(PLANTOWER.read())
+while True:
+    print(PLANTOWER.read())
