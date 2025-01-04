@@ -29,9 +29,9 @@ if new_serial_port != serial_port:
 
 # Initialize empty lists to store time and PM concentration data
 time_data = []
-pm1_data = []
-pm2_5_data = []
-pm10_data = []
+pm1_cf1 = []
+pm2_5_cf1 = []
+pm10_cf1 = []
 
 # Set up the plot
 plt.ion()  # Turn on interactive mode for real-time updates
@@ -62,23 +62,23 @@ try:
 
         # Append new data to the lists
         time_data.append(sample.timestamp)
-        pm1_data.append(sample.pm10_cf1)
-        pm2_5_data.append(sample.pm25_cf1)
-        pm10_data.append(sample.pm100_cf1)
+        pm1_cf1.append(sample.pm10_cf1)
+        pm2_5_cf1.append(sample.pm25_cf1)
+        pm10_cf1.append(sample.pm100_cf1)
 
         if len(time_data) > max_points:
                 time_data = time_data[-max_points:]
-                pm1_data = pm1_data[-max_points:]
-                pm2_5_data = pm2_5_data[-max_points:]
-                pm10_data = pm10_data[-max_points:]
+                pm1_cf1 = pm1_cf1[-max_points:]
+                pm2_5_cf1 = pm2_5_cf1[-max_points:]
+                pm10_cf1 = pm10_cf1[-max_points:]
 
         # Update the plot data
         line_pm1.set_xdata(time_data)
-        line_pm1.set_ydata(pm1_data)
+        line_pm1.set_ydata(pm1_cf1)
         line_pm2_5.set_xdata(time_data)
-        line_pm2_5.set_ydata(pm2_5_data)
+        line_pm2_5.set_ydata(pm2_5_cf1)
         line_pm10.set_xdata(time_data)
-        line_pm10.set_ydata(pm10_data)
+        line_pm10.set_ydata(pm10_cf1)
 
         # Adjust plot limits dynamically
         ax.relim()
