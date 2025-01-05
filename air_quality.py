@@ -6,6 +6,7 @@
 import time
 import plantower
 from utils import find_serial_port
+from collections import deque
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -16,31 +17,42 @@ matplotlib.use('TkAgg')
 serial_port = find_serial_port()
 PLANTOWER = plantower.Plantower(serial_port)
 
-print("Making sure it's correctly setup for active mode. Please wait")
-#make sure it's in the correct mode if it's been used for passive beforehand
-#Not needed if freshly plugged in
-PLANTOWER.mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
-PLANTOWER.set_to_wakeup() #ensure fan is spinning
-time.sleep(30) # give it a chance to stabilise
+if False:
+    print("Making sure it's correctly setup for active mode. Please wait")
+    #make sure it's in the correct mode if it's been used for passive beforehand
+    #Not needed if freshly plugged in
+    PLANTOWER.mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
+    PLANTOWER.set_to_wakeup() #ensure fan is spinning
+    time.sleep(30) # give it a chance to stabilise
 
-new_serial_port = find_serial_port()
-if new_serial_port != serial_port:
-    PLANTOWER = plantower.Plantower(new_serial_port)
+    new_serial_port = find_serial_port()
+    if new_serial_port != serial_port:
+        PLANTOWER = plantower.Plantower(new_serial_port)
 
-# Initialize empty lists to store time and PM concentration data
-time_data = []
+# Initialize empty lists to store time and data
+max_length = 100
+time_data = deque(maxlen=max_length)
 
-pm1_cf1 = []
-pm2_5_cf1 = []
-pm10_cf1 = []
+pm1_cf1 = deque(maxlen=max_length)
+pm2_5_cf1 = deque(maxlen=max_length)
+pm10_cf1 = deque(maxlen=max_length)
 
-pm1_std = []
-pm2_5_std = []
-pm10_std = []
+pm1_std = deque(maxlen=max_length)
+pm2_5_std = deque(maxlen=max_length)
+pm10_std = deque(maxlen=max_length)
+
+particle_counts = {
+    ">0.3μm": deque(maxlen=max_length),
+    ">0.5μm": deque(maxlen=max_length),
+    ">1.0μm": deque(maxlen=max_length),
+    ">2.5μm": deque(maxlen=max_length),
+    ">5.0μm": deque(maxlen=max_length),
+    ">10μm": deque(maxlen=max_length),
+}
 
 # Set up the plot
 plt.ion()  # Turn on interactive mode for real-time updates
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, (ax, ax_bar) = plt.subplots(2, 1, figsize=(10, 8))
 
 line_pm1_cf1, = ax.plot([], [], label='PM1.0 (CF=1)', marker='o', color='blue')
 line_pm2_5_cf1, = ax.plot([], [], label='PM2.5 (CF=1)', marker='o', color='green')
@@ -56,12 +68,15 @@ ax.set_title('Real-Time Time Series of PM Concentrations')
 ax.legend()
 ax.grid(True)
 
+ax_bar.set_title('Particle Count Distribution')
+ax_bar.set_xlabel('Particle Size Range')
+ax_bar.set_ylabel('Number of Particles (in 0.1L)')
+
 # Format the x-axis for time
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 plt.tight_layout()
 
 #actually do the reading
-max_points = 100
 sample_count = 0
 print("Start reading data")
 try:
@@ -79,15 +94,6 @@ try:
         pm1_std.append(sample.pm10_std)
         pm2_5_std.append(sample.pm25_std)
         pm10_std.append(sample.pm100_std)
-
-        if len(time_data) > max_points:
-                time_data = time_data[-max_points:]
-                pm1_cf1 = pm1_cf1[-max_points:]
-                pm2_5_cf1 = pm2_5_cf1[-max_points:]
-                pm10_cf1 = pm10_cf1[-max_points:]
-                pm1_std = pm1_std[-max_points:]
-                pm2_5_std = pm2_5_std[-max_points:]
-                pm10_std = pm10_std[-max_points:]
 
         # Update the plot data
         line_pm1_cf1.set_xdata(time_data)
