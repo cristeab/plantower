@@ -64,16 +64,61 @@ def add_pm25_reading(current_time, value):
     while pm2_5_timestamp_data and current_time - pm2_5_timestamp_data[0][0] > timedelta(seconds=600):
         pm2_5_timestamp_data.popleft()
 
-def calculate_pm25_average():
-    if not pm2_5_timestamp_data:
-        return 0  # Return 0 if no data is available
-    total = sum(value for _, value in pm2_5_timestamp_data)
-    return total / len(pm2_5_timestamp_data)
+def calculate_nowcast():
+    if len(pm2_5_timestamp_data) < 2:
+        return None
+
+    pm25_values = [item[1] for item in pm2_5_timestamp_data]
+    min_value = min(pm25_values)
+    max_value = max(pm25_values)
+
+    if max_value == 0:
+        return 0
+
+    w_star = min_value / max_value
+    w = max(w_star, 0.5)
+
+    total = 0
+    total_weight = 0
+    current_time = pm2_5_timestamp_data[-1][0]
+
+    for timestamp, value in pm2_5_timestamp_data:
+        time_diff = (current_time - timestamp).total_seconds() / 60
+        if time_diff <= 10:
+            weight = w ** time_diff
+            total += value * weight
+            total_weight += weight
+
+    if total_weight == 0:
+        return None
+
+    return total / total_weight
+
+def calculate_aqi(concentration):
+    if concentration <= 12.0:
+        return ((50 - 0) / (12.0 - 0.0)) * (concentration - 0.0) + 0
+    elif concentration <= 35.4:
+        return ((100 - 51) / (35.4 - 12.1)) * (concentration - 12.1) + 51
+    elif concentration <= 55.4:
+        return ((150 - 101) / (55.4 - 35.5)) * (concentration - 35.5) + 101
+    elif concentration <= 150.4:
+        return ((200 - 151) / (150.4 - 55.5)) * (concentration - 55.5) + 151
+    elif concentration <= 250.4:
+        return ((300 - 201) / (250.4 - 150.5)) * (concentration - 150.5) + 201
+    elif concentration <= 350.4:
+        return ((400 - 301) / (350.4 - 250.5)) * (concentration - 250.5) + 301
+    elif concentration <= 500.4:
+        return ((500 - 401) / (500.4 - 350.5)) * (concentration - 350.5) + 401
+    else:
+        return 500
 
 def continuous_update():
     while True:
-        average = calculate_pm25_average()
-        print(f"Updated PM2.5 Average: {average:.2f}")
+        average = calculate_nowcast()
+        if average is None:
+            continue
+        aqi = round(calculate_aqi(average))
+        print(f"AQI: {aqi:.2f}")
         time.sleep(1)  # Update every second
 
 # Start a thread to continuously update the PM2.5 average
