@@ -7,6 +7,9 @@ import time
 import plantower
 from utils import find_serial_port
 from collections import deque
+from statistics import mean
+from datetime import timedelta
+import threading
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -51,6 +54,32 @@ particle_counts = {
 }
 sizes = list(particle_counts.keys())
 
+# Initialize a deque to store PM2.5 readings and their timestamps
+pm2_5_timestamp_data = deque()
+
+def add_pm25_reading(current_time, value):
+    pm2_5_timestamp_data.append((current_time, value))
+
+    # Remove readings older than 10 minutes (600 seconds)
+    while pm2_5_timestamp_data and current_time - pm2_5_timestamp_data[0][0] > timedelta(seconds=600):
+        pm2_5_timestamp_data.popleft()
+
+def calculate_pm25_average():
+    if not pm2_5_timestamp_data:
+        return 0  # Return 0 if no data is available
+    total = sum(value for _, value in pm2_5_timestamp_data)
+    return total / len(pm2_5_timestamp_data)
+
+def continuous_update():
+    while True:
+        average = calculate_pm25_average()
+        print(f"Updated PM2.5 Average: {average:.2f}")
+        time.sleep(1)  # Update every second
+
+# Start a thread to continuously update the PM2.5 average
+update_thread = threading.Thread(target=continuous_update, daemon=True)
+update_thread.start()
+
 # Set up the plot
 plt.ion()  # Turn on interactive mode for real-time updates
 fig, (ax, ax_bar) = plt.subplots(2, 1, figsize=(10, 8))
@@ -59,14 +88,14 @@ line_pm1_cf1, = ax.plot([], [], label='PM1.0 (CF=1)', marker='o', color='blue')
 line_pm2_5_cf1, = ax.plot([], [], label='PM2.5 (CF=1)', marker='o', color='green')
 line_pm10_cf1, = ax.plot([], [], label='PM10 (CF=1)', marker='o', color='red')
 
-line_pm1_std, = ax.plot([], [], label='PM1.0 (ATM)', marker='o', color='blue', linestyle='--')
-line_pm2_5_std, = ax.plot([], [], label='PM2.5 (ATM)', marker='o', color='green', linestyle='--')
-line_pm10_std, = ax.plot([], [], label='PM10 (ATM)', marker='o', color='red', linestyle='--')
+line_pm1_std, = ax.plot([], [], label='PM1.0 (ATM)', marker='s', color='blue')
+line_pm2_5_std, = ax.plot([], [], label='PM2.5 (ATM)', marker='s', color='green')
+line_pm10_std, = ax.plot([], [], label='PM10 (ATM)', marker='s', color='red')
 
 ax.set_xlabel('Time')
 ax.set_ylabel('Concentration (μg/m³)')
 ax.set_title('Real-Time Time Series of PM Concentrations')
-ax.legend()
+ax.legend(loc='lower left')
 ax.grid(True)
 
 ax_bar.set_xlabel('Particle Size Range')
@@ -102,6 +131,9 @@ try:
         particle_counts[">5.0μm"].append(sample.gr50um)
         particle_counts[">10μm"].append(sample.gr100um)
 
+        # update PM data for AQI computation
+        add_pm25_reading(sample.timestamp, sample.pm25_cf1)
+
         # Update the plot data
         line_pm1_cf1.set_xdata(time_data)
         line_pm1_cf1.set_ydata(pm1_cf1)
@@ -127,7 +159,7 @@ try:
 
         # Plot particle counts for different size ranges
         ax_bar.set_title(f'Particle Count Distribution ({sample_count})')
-        counts = [particle_counts[size][-1] if len(particle_counts[size]) > 0 else 0 for size in sizes]
+        counts = [mean(particle_counts[size]) if len(particle_counts[size]) > 0 else 0 for size in sizes]
         ax_bar.bar(sizes, counts, color=['blue', 'green', 'red', 'purple', 'orange', 'brown'])
 except KeyboardInterrupt:
     print("Real-time plotting stopped.")
