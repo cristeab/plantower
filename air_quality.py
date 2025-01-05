@@ -49,6 +49,7 @@ particle_counts = {
     ">5.0μm": deque(maxlen=max_length),
     ">10μm": deque(maxlen=max_length),
 }
+sizes = list(particle_counts.keys())
 
 # Set up the plot
 plt.ion()  # Turn on interactive mode for real-time updates
@@ -95,6 +96,13 @@ try:
         pm2_5_std.append(sample.pm25_std)
         pm10_std.append(sample.pm100_std)
 
+        particle_counts[">0.3μm"].append(sample.gr03um)
+        particle_counts[">0.5μm"].append(sample.gr05um)
+        particle_counts[">1.0μm"].append(sample.gr10um)
+        particle_counts[">2.5μm"].append(sample.gr25um)
+        particle_counts[">5.0μm"].append(sample.gr50um)
+        particle_counts[">10μm"].append(sample.gr100um)
+
         # Update the plot data
         line_pm1_cf1.set_xdata(time_data)
         line_pm1_cf1.set_ydata(pm1_cf1)
@@ -117,6 +125,10 @@ try:
         # Redraw the plot
         fig.canvas.draw()
         fig.canvas.flush_events()
+
+        # Plot particle counts for different size ranges
+        counts = [particle_counts[size][-1] if len(particle_counts[size]) > 0 else 0 for size in sizes]
+        ax_bar.bar(sizes, counts, color=['blue', 'green', 'red', 'purple', 'orange', 'brown'])
 
         # Print the number of samples read
         print(f"\rSamples read: {sample_count}", end="", flush=True)
