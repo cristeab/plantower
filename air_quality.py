@@ -69,7 +69,6 @@ ax.set_title('Real-Time Time Series of PM Concentrations')
 ax.legend()
 ax.grid(True)
 
-ax_bar.set_title('Particle Count Distribution')
 ax_bar.set_xlabel('Particle Size Range')
 ax_bar.set_ylabel('Number of Particles (in 0.1L)')
 
@@ -127,10 +126,8 @@ try:
         fig.canvas.flush_events()
 
         # Plot particle counts for different size ranges
+        ax_bar.set_title(f'Particle Count Distribution ({sample_count})')
         counts = [particle_counts[size][-1] if len(particle_counts[size]) > 0 else 0 for size in sizes]
         ax_bar.bar(sizes, counts, color=['blue', 'green', 'red', 'purple', 'orange', 'brown'])
-
-        # Print the number of samples read
-        print(f"\rSamples read: {sample_count}", end="", flush=True)
 except KeyboardInterrupt:
     print("Real-time plotting stopped.")
