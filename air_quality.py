@@ -55,62 +55,58 @@ particle_counts = {
 sizes = list(particle_counts.keys())
 
 # Initialize a deque to store PM2.5 readings and their timestamps
-pm2_5_timestamp_data = deque()
+pm_readings = deque()
+timestamps = deque()
 
 def add_pm25_reading(current_time, value):
-    pm2_5_timestamp_data.append((current_time, value))
+    pm_readings.append(value)
+    timestamps.append(current_time)
 
     # Remove readings older than 10 minutes (600 seconds)
-    while pm2_5_timestamp_data and current_time - pm2_5_timestamp_data[0][0] > timedelta(seconds=600):
-        pm2_5_timestamp_data.popleft()
+    while timestamps and current_time - timestamps[0] > timedelta(seconds=600):
+        pm_readings.popleft()
+        timestamps.popleft()
 
-def calculate_nowcast():
-    if len(pm2_5_timestamp_data) < 2:
+def calculate_nowcast_aqi():
+    if len(pm_readings) < 2:
         return None
 
-    pm25_values = [item[1] for item in pm2_5_timestamp_data]
-    min_value = min(pm25_values)
-    max_value = max(pm25_values)
+    # Calculate the range and scaled rate of change
+    min_pm = min(pm_readings)
+    max_pm = max(pm_readings)
+    range_pm = max_pm - min_pm
+    scaled_rate_of_change = range_pm / max_pm if max_pm != 0 else 0
 
-    if max_value == 0:
-        return 0
+    # Calculate weight factor
+    weight_factor = max(1 - scaled_rate_of_change, 0.5)
 
-    w_star = min_value / max_value
-    w = max(w_star, 0.5)
+    # Calculate weighted average concentration
+    weighted_sum = 0
+    weight_sum = 0
+    for i, (pm, time) in enumerate(zip(pm_readings, timestamps)):
+        time_diff = (timestamps[-1] - time).total_seconds() / 600  # Normalize to 10 minutes
+        weight = weight_factor ** time_diff
+        weighted_sum += pm * weight
+        weight_sum += weight
 
-    total = 0
-    total_weight = 0
-    current_time = pm2_5_timestamp_data[-1][0]
+    nowcast_concentration = weighted_sum / weight_sum
 
-    for timestamp, value in pm2_5_timestamp_data:
-        time_diff = (current_time - timestamp).total_seconds() / 60
-        if time_diff <= 10:
-            weight = w ** time_diff
-            total += value * weight
-            total_weight += weight
+    # AQI breakpoints for PM2.5
+    breakpoints = [
+        (0.0, 12.0, 0, 50),
+        (12.1, 35.4, 51, 100),
+        (35.5, 55.4, 101, 150),
+        (55.5, 150.4, 151, 200),
+        (150.5, 250.4, 201, 300),
+        (250.5, 500.4, 301, 500)
+    ]
 
-    if total_weight == 0:
-        return None
+    for bp_low, bp_high, aqi_low, aqi_high in breakpoints:
+        if bp_low <= nowcast_concentration <= bp_high:
+            aqi = ((aqi_high - aqi_low) / (bp_high - bp_low)) * (nowcast_concentration - bp_low) + aqi_low
+            return round(aqi, 1)
 
-    return total / total_weight
-
-def calculate_aqi(concentration):
-    if concentration <= 12.0:
-        return ((50 - 0) / (12.0 - 0.0)) * (concentration - 0.0) + 0
-    elif concentration <= 35.4:
-        return ((100 - 51) / (35.4 - 12.1)) * (concentration - 12.1) + 51
-    elif concentration <= 55.4:
-        return ((150 - 101) / (55.4 - 35.5)) * (concentration - 35.5) + 101
-    elif concentration <= 150.4:
-        return ((200 - 151) / (150.4 - 55.5)) * (concentration - 55.5) + 151
-    elif concentration <= 250.4:
-        return ((300 - 201) / (250.4 - 150.5)) * (concentration - 150.5) + 201
-    elif concentration <= 350.4:
-        return ((400 - 301) / (350.4 - 250.5)) * (concentration - 250.5) + 301
-    elif concentration <= 500.4:
-        return ((500 - 401) / (500.4 - 350.5)) * (concentration - 350.5) + 401
-    else:
-        return 500
+    return None  # If concentration is out of range
 
 def aqi_category(aqi):
     if 0 <= aqi:
@@ -130,10 +126,9 @@ def aqi_category(aqi):
 
 def continuous_update():
     while True:
-        average = calculate_nowcast()
-        if average is None:
+        aqi = calculate_nowcast_aqi()
+        if aqi is None:
             continue
-        aqi = round(calculate_aqi(average))
         print(f"\rAQI: {aqi:.2f} ({aqi_category(aqi)})", end="", flush=True)
         time.sleep(1)  # Update every second
 
