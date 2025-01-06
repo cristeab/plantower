@@ -112,13 +112,29 @@ def calculate_aqi(concentration):
     else:
         return 500
 
+def aqi_category(aqi):
+    if 0 <= aqi:
+        if aqi <= 50:
+            return 'Good'
+        if aqi <= 100:
+            return 'Moderate'
+        if aqi <= 150:
+            return 'Unhealthy for Sensitive Groups'
+        if aqi <= 200:
+            return 'Unhealthy'
+        if aqi <= 300:
+            return 'Very Unhealthy'
+        if aqi <= 500:
+            return 'Hazardous'
+    return 'Out of range AQI {aqi}'
+
 def continuous_update():
     while True:
         average = calculate_nowcast()
         if average is None:
             continue
         aqi = round(calculate_aqi(average))
-        print(f"AQI: {aqi:.2f}")
+        print(f"\rAQI: {aqi:.2f} ({aqi_category(aqi)})", end="", flush=True)
         time.sleep(1)  # Update every second
 
 # Start a thread to continuously update the PM2.5 average
