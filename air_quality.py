@@ -15,12 +15,16 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
+enable_active_mode = True
 matplotlib.use('TkAgg')
 #  test code for active mode
 serial_port = find_serial_port()
 PLANTOWER = plantower.Plantower(serial_port)
 
-if False:
+plt.ion()  # Turn on interactive mode for real-time updates
+fig, (ax, ax_bar) = plt.subplots(2, 1, figsize=(10, 8))
+
+if enable_active_mode:
     print("Making sure it's correctly setup for active mode. Please wait")
     #make sure it's in the correct mode if it's been used for passive beforehand
     #Not needed if freshly plugged in
@@ -129,7 +133,7 @@ def continuous_update():
         aqi = calculate_nowcast_aqi()
         if aqi is None:
             continue
-        print(f"\rAQI: {aqi:.2f} ({aqi_category(aqi)})", end="", flush=True)
+        print(f"\rReal-Time Time Series of PM Concentrations, AQI: {aqi:.2f} ({aqi_category(aqi)})", end="", flush=True)
         time.sleep(1)  # Update every second
 
 # Start a thread to continuously update the PM2.5 average
@@ -137,9 +141,6 @@ update_thread = threading.Thread(target=continuous_update, daemon=True)
 update_thread.start()
 
 # Set up the plot
-plt.ion()  # Turn on interactive mode for real-time updates
-fig, (ax, ax_bar) = plt.subplots(2, 1, figsize=(10, 8))
-
 line_pm1_cf1, = ax.plot([], [], label='PM1.0 (CF=1)', marker='o', color='blue')
 line_pm2_5_cf1, = ax.plot([], [], label='PM2.5 (CF=1)', marker='o', color='green')
 line_pm10_cf1, = ax.plot([], [], label='PM10 (CF=1)', marker='o', color='red')
