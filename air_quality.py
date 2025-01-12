@@ -60,7 +60,7 @@ PARTICLE_CONFIG = {
 }
 line_pc = {}
 for size, color in PARTICLE_CONFIG.items():
-    line_pc[size], = ax_bottom.plot([], [],  label=size, marker='.', color=color)
+    line_pc[size], = ax_bottom.plot([], [],  label=size, marker='.', color=color, linestyle='None')
 
 ax_bottom.set_xlabel('Particle Size Range')
 ax_bottom.set_ylabel('Number of Particles (in 0.1L)')
