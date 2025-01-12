@@ -33,6 +33,8 @@ update_thread.start()
 matplotlib.use('TkAgg')
 plt.ion()  # Turn on interactive mode for real-time updates
 fig, (ax, ax_bottom) = plt.subplots(2, 1, figsize=(10, 8))
+
+# Particulate Matter
 line_pm1_cf1, = ax.plot([], [], label='PM1.0 (CF=1)', marker='o', color='blue')
 line_pm2_5_cf1, = ax.plot([], [], label='PM2.5 (CF=1)', marker='o', color='green')
 line_pm10_cf1, = ax.plot([], [], label='PM10 (CF=1)', marker='o', color='red')
@@ -47,13 +49,28 @@ ax.set_title('Real-Time Time Series of PM Concentrations ' + aq_utils.aqi)
 ax.legend(loc='lower left')
 ax.grid(True)
 
+# Particle Count
+PARTICLE_CONFIG = {
+    ">0.3um": "blue",
+    ">0.5um": "green",
+    ">1.0um": "red",
+    ">2.5um": "purple",
+    ">5.0um": "orange",
+    ">10um": "brown"
+}
+line_pc = {}
+for size, color in PARTICLE_CONFIG.items():
+    line_pc[size], = ax_bottom.plot([], [],  label=size, marker='.', color=color)
+
 ax_bottom.set_xlabel('Particle Size Range')
 ax_bottom.set_ylabel('Number of Particles (in 0.1L)')
 ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count})')
-ax.grid(True)
+ax_bottom.legend(loc='lower left')
+ax_bottom.grid(True)
 
 # Format the x-axis for time
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+ax_bottom.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 plt.tight_layout()
 
 #actually do the reading
@@ -84,9 +101,14 @@ try:
         ax.autoscale_view()
 
         # Plot particle counts for different size ranges
-        counts = [mean(aq_utils.particle_counts[size]) if len(aq_utils.particle_counts[size]) > 0 else 0 for size in aq_utils.PARTICLE_SIZES]
-        ax_bottom.bar(aq_utils.PARTICLE_SIZES, counts, color=['blue', 'green', 'red', 'purple', 'orange', 'brown'])
+        for size in aq_utils.PARTICLE_SIZES:
+            line_pc[size].set_xdata(aq_utils.plot_timestamps)
+            line_pc[size].set_ydata(aq_utils.particle_counts[size])
+
         ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count})')
+
+        ax_bottom.relim()
+        ax_bottom.autoscale_view()
 
         # Redraw the plot
         fig.canvas.draw()

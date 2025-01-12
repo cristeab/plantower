@@ -37,12 +37,12 @@ class AirQualityUtils:
     pm10_std = deque(maxlen=MAX_QUEUE_LENGTH)
 
     particle_counts = {
-        ">0.3μm": deque(maxlen=MAX_QUEUE_LENGTH),
-        ">0.5μm": deque(maxlen=MAX_QUEUE_LENGTH),
-        ">1.0μm": deque(maxlen=MAX_QUEUE_LENGTH),
-        ">2.5μm": deque(maxlen=MAX_QUEUE_LENGTH),
-        ">5.0μm": deque(maxlen=MAX_QUEUE_LENGTH),
-        ">10μm": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">0.3um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">0.5um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">1.0um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">2.5um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">5.0um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">10um": deque(maxlen=MAX_QUEUE_LENGTH),
     }
     PARTICLE_SIZES = list(particle_counts.keys())
 
@@ -65,8 +65,8 @@ class AirQualityUtils:
             self._pt.set_to_wakeup() #ensure fan is spinning
             # give it a chance to stabilise
             for s in range(0, self.WAKEUP_DELAY_SEC):
-                print(f"\rElapsed seconds: {s}", end="", flush=True)
                 time.sleep(1)
+                print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
             print(f"\rDone")
 
             new_serial_port = AirQualityUtils.find_serial_port()
@@ -156,12 +156,12 @@ class AirQualityUtils:
         self.pm2_5_std.append(sample.pm25_std)
         self.pm10_std.append(sample.pm100_std)
 
-        self.particle_counts[">0.3μm"].append(sample.gr03um)
-        self.particle_counts[">0.5μm"].append(sample.gr05um)
-        self.particle_counts[">1.0μm"].append(sample.gr10um)
-        self.particle_counts[">2.5μm"].append(sample.gr25um)
-        self.particle_counts[">5.0μm"].append(sample.gr50um)
-        self.particle_counts[">10μm"].append(sample.gr100um)
+        self.particle_counts[">0.3um"].append(sample.gr03um)
+        self.particle_counts[">0.5um"].append(sample.gr05um)
+        self.particle_counts[">1.0um"].append(sample.gr10um)
+        self.particle_counts[">2.5um"].append(sample.gr25um)
+        self.particle_counts[">5.0um"].append(sample.gr50um)
+        self.particle_counts[">10um"].append(sample.gr100um)
 
         # update PM data for AQI computation
         self.add_pm25_reading(sample.timestamp, sample.pm25_cf1)
