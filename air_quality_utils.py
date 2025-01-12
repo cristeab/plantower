@@ -26,7 +26,7 @@ class AirQualityUtils:
             ]
 
     sample_count = 0
-    time_data = deque(maxlen=MAX_QUEUE_LENGTH)
+    plot_timestamps = deque(maxlen=MAX_QUEUE_LENGTH)
 
     pm1_cf1 = deque(maxlen=MAX_QUEUE_LENGTH)
     pm2_5_cf1 = deque(maxlen=MAX_QUEUE_LENGTH)
@@ -50,18 +50,24 @@ class AirQualityUtils:
     pm_timestamps = deque()
     pm_readings = deque()
 
+    aqi = "N/A"
+
     def __init__(self):
         self._lock = Lock()
         serial_port = AirQualityUtils.find_serial_port()
         self._pt = plantower.Plantower(serial_port)
 
         if self.ENABLE_ACTIVE_MODE:
-            print("Making sure the sensor is correctly setup for active mode. Please wait...")
+            print(f"Making sure the sensor is correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
             #make sure it's in the correct mode if it's been used for passive beforehand
             #Not needed if freshly plugged in
             self._pt.mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
             self._pt.set_to_wakeup() #ensure fan is spinning
-            time.sleep(self.WAKEUP_DELAY_SEC) # give it a chance to stabilise
+            # give it a chance to stabilise
+            for s in range(0, self.WAKEUP_DELAY_SEC):
+                print(f"\rElapsed seconds: {s}", end="", flush=True)
+                time.sleep(1)
+            print(f"\rDone")
 
             new_serial_port = AirQualityUtils.find_serial_port()
             if new_serial_port != serial_port:
@@ -140,7 +146,7 @@ class AirQualityUtils:
         self.sample_count += 1
 
         # Append new data to the lists
-        self.time_data.append(sample.timestamp)
+        self.plot_timestamps.append(sample.timestamp)
 
         self.pm1_cf1.append(sample.pm10_cf1)
         self.pm2_5_cf1.append(sample.pm25_cf1)
