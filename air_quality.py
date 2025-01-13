@@ -21,7 +21,7 @@ def continuous_update():
         if aqi is None:
             continue
         category = AirQualityUtils.aqi_category(aqi)
-        aq_utils.aqi = f"{int(aq_utils.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} ({category})"
+        aq_utils.aqi = f"{int(aq_utils.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
         time.sleep(1)  # Update every second
 
 
