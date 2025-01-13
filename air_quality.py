@@ -105,7 +105,7 @@ try:
             line_pc[size].set_xdata(aq_utils.plot_timestamps)
             line_pc[size].set_ydata(aq_utils.particle_counts[size])
 
-        ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count}) | {aq_utils.elapsed_time}')
+        ax_bottom.set_title(f'Particle Count Distribution | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
         ax_bottom.relim()
         ax_bottom.autoscale_view()
