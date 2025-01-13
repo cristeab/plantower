@@ -64,7 +64,7 @@ for size, color in PARTICLE_CONFIG.items():
 
 ax_bottom.set_xlabel('Particle Size Range')
 ax_bottom.set_ylabel('Number of Particles (in 0.1L)')
-ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count}) | {aq_utils.elapsed_time}')
+ax_bottom.set_title(f'Particle Count Distribution | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 ax_bottom.legend(loc='lower left')
 ax_bottom.grid(True)
 
