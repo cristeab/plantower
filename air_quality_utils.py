@@ -153,9 +153,9 @@ class AirQualityUtils:
 
         self.elapsed_time = "Elapsed time "
         if days > 0:
-            self.elapsed_time += f"{days} days, {hours:02d} hours, {minutes:02d}, min., {seconds:02d} sec."
+            self.elapsed_time += f"{days} days, {hours:02d} hours, {minutes:02d} min., {seconds:02d} sec."
         elif hours > 0:
-            self.elapsed_time += f"{hours} hours, {minutes:02d}, min., {seconds:02d} sec."
+            self.elapsed_time += f"{hours} hours, {minutes:02d} min., {seconds:02d} sec."
         elif minutes > 0:
             self.elapsed_time += f"{minutes} min., {seconds:02d} sec."
         else:
