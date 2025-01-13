@@ -159,7 +159,7 @@ class AirQualityUtils:
         elif minutes > 0:
             self.elapsed_time += f"{minutes} min., {seconds:02d} sec."
         else:
-            self.elapsed_time += f"{elapsed_time.total_seconds():d} sec."
+            self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
     def read_sample(self):
         sample = self._pt.read()
