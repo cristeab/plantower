@@ -60,11 +60,11 @@ PARTICLE_CONFIG = {
 }
 line_pc = {}
 for size, color in PARTICLE_CONFIG.items():
-    line_pc[size], = ax_bottom.plot([], [],  label=size, marker='.', color=color, linestyle='None')
+    line_pc[size], = ax_bottom.plot([], [],  label=size, marker='.', color=color)
 
 ax_bottom.set_xlabel('Particle Size Range')
 ax_bottom.set_ylabel('Number of Particles (in 0.1L)')
-ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count})')
+ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count}) | {aq_utils.elapsed_time}')
 ax_bottom.legend(loc='lower left')
 ax_bottom.grid(True)
 
@@ -105,7 +105,7 @@ try:
             line_pc[size].set_xdata(aq_utils.plot_timestamps)
             line_pc[size].set_ydata(aq_utils.particle_counts[size])
 
-        ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count})')
+        ax_bottom.set_title(f'Particle Count Distribution ({aq_utils.sample_count}) | {aq_utils.elapsed_time}')
 
         ax_bottom.relim()
         ax_bottom.autoscale_view()

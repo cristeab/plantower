@@ -51,9 +51,11 @@ class AirQualityUtils:
     pm_readings = deque()
 
     aqi = "N/A"
+    elapsed_time = "N/A"
 
     def __init__(self):
         self._lock = Lock()
+        self._start_time = None
         serial_port = AirQualityUtils.find_serial_port()
         self._pt = plantower.Plantower(serial_port)
 
@@ -141,9 +143,30 @@ class AirQualityUtils:
                 return 'Hazardous'
         return 'Out of range {aqi}'
 
+    def update_elapsed_time(self, current_time):
+        elapsed_time = current_time - self._start_time
+        total_seconds = int(elapsed_time.total_seconds())
+
+        days, remainder = divmod(total_seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        self.elapsed_time = "Elapsed time "
+        if days > 0:
+            self.elapsed_time += f"{days} days, {hours:02d} hours, {minutes:02d}, min., {seconds:02d} sec."
+        elif hours > 0:
+            self.elapsed_time += f"{hours} hours, {minutes:02d}, min., {seconds:02d} sec."
+        elif minutes > 0:
+            self.elapsed_time += f"{minutes} min., {seconds:02d} sec."
+        else:
+            self.elapsed_time += f"{elapsed_time.total_seconds()} sec."
+
     def read_sample(self):
         sample = self._pt.read()
         self.sample_count += 1
+
+        if self._start_time is None:
+            self._start_time = sample.timestamp
 
         # Append new data to the lists
         self.plot_timestamps.append(sample.timestamp)
@@ -165,3 +188,5 @@ class AirQualityUtils:
 
         # update PM data for AQI computation
         self.add_pm25_reading(sample.timestamp, sample.pm25_cf1)
+
+        self.update_elapsed_time(sample.timestamp)
