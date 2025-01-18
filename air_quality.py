@@ -7,31 +7,43 @@ from air_quality_utils import AirQualityUtils
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import threading
 from statistics import mean
 import time
 
 
 aq_utils = AirQualityUtils()
 
-
-def continuous_update():
-    while True:
-        aqi = aq_utils.calculate_nowcast_aqi()
-        if aqi is None:
-            continue
-        category = AirQualityUtils.aqi_category(aqi)
-        aq_utils.aqi = f"{int(aq_utils.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
-        time.sleep(1)  # Update every second
-
-
-# Start a thread to continuously update the PM2.5 average
-update_thread = threading.Thread(target=continuous_update, daemon=True)
-update_thread.start()
-
 # Set up the plot
 matplotlib.use('TkAgg')
 plt.ion()  # Turn on interactive mode for real-time updates
+
+fig_aqi, ax_aqi = plt.subplots(figsize=(12, 6))
+
+ax_aqi.plot([], [], 'b-', linewidth=2, label='AQI')
+# Define AQI thresholds and colors
+thresholds = {
+        'Good': (0, 50, '#00E400'),
+        'Moderate': (51, 100, '#FFFF00'),
+        'Unhealthy for Sensitive Groups': (101, 150, '#FF7E00'),
+        'Unhealthy': (151, 200, '#FF0000'),
+        'Very Unhealthy': (201, 300, '#8F3F97'),
+        'Hazardous': (301, 500, '#7E0023')
+    }
+    
+# Fill threshold regions
+for label, (low, high, color) in thresholds.items():
+    ax_aqi.axhspan(low, high, alpha=0.2, color=color, label=label)
+    
+# Customize the plot
+ax_aqi.set_ylabel('Air Quality Index (AQI)')
+ax_aqi.set_xlabel('Time')
+ax_aqi.grid(True, linestyle='--', alpha=0.7)
+ax_aqi.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+# Set y-axis limits to cover all AQI ranges
+ax_aqi.set_ylim(0, 500)
+
+# plot for PM and number of particles
 fig, (ax, ax_bottom) = plt.subplots(2, 1, figsize=(10, 8))
 
 # Particulate Matter

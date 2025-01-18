@@ -6,7 +6,7 @@ import plantower
 import time
 from collections import deque
 from datetime import timedelta
-from threading import Lock
+import threading as th
 
 
 class AirQualityUtils:
@@ -54,9 +54,9 @@ class AirQualityUtils:
     elapsed_time = "N/A"
 
     def __init__(self):
-        self._lock = Lock()
+        self._lock = th.Lock()
         self._start_time = None
-        serial_port = AirQualityUtils.find_serial_port()
+        serial_port = AirQualityUtils._find_serial_port()
         self._pt = plantower.Plantower(serial_port)
 
         if self.ENABLE_ACTIVE_MODE:
@@ -71,11 +71,13 @@ class AirQualityUtils:
                 print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
             print(f"\nDone")
 
-            new_serial_port = AirQualityUtils.find_serial_port()
+            new_serial_port = AirQualityUtils._find_serial_port()
             if new_serial_port != serial_port:
                 self._pt = plantower.Plantower(new_serial_port)
+        
+        self._start_continuous_update()
 
-    def add_pm25_reading(self, current_time, value):
+    def _add_pm25_reading(self, current_time, value):
         with self._lock:
             self.pm_timestamps.append(current_time)
             self.pm_readings.append(value)
@@ -85,7 +87,7 @@ class AirQualityUtils:
                 self.pm_timestamps.popleft()
                 self.pm_readings.popleft()
 
-    def calculate_nowcast_aqi(self):
+    def _calculate_nowcast_aqi(self):
         with self._lock:
             if len(self.pm_readings) < 2:
                 return None
@@ -118,7 +120,7 @@ class AirQualityUtils:
         return None  # If concentration is out of range
     
     @staticmethod
-    def find_serial_port():
+    def _find_serial_port():
         ports = list(serial.tools.list_ports.comports())
         for port in ports:
             if 'ttyACM' in port.device:
@@ -127,7 +129,7 @@ class AirQualityUtils:
         sys.exit(1)
 
     @staticmethod
-    def aqi_category(aqi):
+    def _aqi_category(aqi):
         if 0 <= aqi:
             if aqi <= 50:
                 return 'Good'
@@ -143,7 +145,7 @@ class AirQualityUtils:
                 return 'Hazardous'
         return 'Out of range {aqi}'
 
-    def update_elapsed_time(self, current_time):
+    def _update_elapsed_time(self, current_time):
         elapsed_time = current_time - self._start_time
         total_seconds = int(elapsed_time.total_seconds())
 
@@ -187,6 +189,22 @@ class AirQualityUtils:
         self.particle_counts[">10um"].append(sample.gr100um)
 
         # update PM data for AQI computation
-        self.add_pm25_reading(sample.timestamp, sample.pm25_cf1)
+        self._add_pm25_reading(sample.timestamp, sample.pm25_cf1)
 
-        self.update_elapsed_time(sample.timestamp)
+        self._update_elapsed_time(sample.timestamp)
+
+    def _continuous_update(self):
+        while True:
+            aqi = self._calculate_nowcast_aqi()
+            if aqi is None:
+                continue
+            category = AirQualityUtils._aqi_category(aqi)
+            self.aqi = f"{int(aq_utils.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
+            time.sleep(1)  # Update every second
+
+    def _start_continuous_update(self):
+        update_thread = th.Thread(
+            target=self._continuous_update,
+            daemon=True
+        )
+        update_thread.start()
