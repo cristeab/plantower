@@ -31,17 +31,22 @@ thresholds = {
     }
     
 # Fill threshold regions
+yaxis_ticks = [0]
 for label, (low, high, color) in thresholds.items():
     ax_aqi.axhspan(low, high, alpha=0.2, color=color, label=label)
+    # Calculate middle position for text
+    yaxis_ticks.append(high)
+    y_pos = (low + high) / 2
+    ax_aqi.text(ax_aqi.get_xlim()[0], y_pos, label, va='center', ha='left', fontsize=10)
     
 # Customize the plot
 ax_aqi.set_ylabel('Air Quality Index (AQI)')
 ax_aqi.set_xlabel('Time')
 ax_aqi.grid(True, linestyle='--', alpha=0.7)
-ax_aqi.legend(bbox_to_anchor=(0.05, 1), loc='upper left')
 ax_aqi.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
 # Set y-axis limits to cover all AQI ranges
+ax_aqi.set_yticks(yaxis_ticks)
 ax_aqi.set_ylim(0, 500)
 
 # plot for PM and number of particles
@@ -120,10 +125,9 @@ try:
 
         ax_bottom.set_title(f'Particle Count Distribution | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
+        # Redraw the plot
         ax_bottom.relim()
         ax_bottom.autoscale_view()
-
-        # Redraw the plot
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -133,10 +137,9 @@ try:
             line_aqi.set_ydata(aq_utils.plot_aqi)
         ax_aqi.set_title(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
+        # Redraw the plot
         ax_aqi.relim()
         ax_aqi.autoscale_view()
-
-        # Redraw the plot
         fig_aqi.canvas.draw()
         fig_aqi.canvas.flush_events()
 
