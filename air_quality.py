@@ -19,7 +19,7 @@ plt.ion()  # Turn on interactive mode for real-time updates
 
 fig_aqi, ax_aqi = plt.subplots(figsize=(12, 6))
 
-ax_aqi.plot([], [], 'b-', linewidth=2, label='AQI')
+line_aqi, = ax_aqi.plot([], [], 'b-', linewidth=2, label='AQI')
 # Define AQI thresholds and colors
 thresholds = {
         'Good': (0, 50, '#00E400'),
@@ -39,7 +39,8 @@ ax_aqi.set_ylabel('Air Quality Index (AQI)')
 ax_aqi.set_xlabel('Time')
 ax_aqi.grid(True, linestyle='--', alpha=0.7)
 ax_aqi.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    
+ax_aqi.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+
 # Set y-axis limits to cover all AQI ranges
 ax_aqi.set_ylim(0, 500)
 
@@ -125,6 +126,17 @@ try:
         # Redraw the plot
         fig.canvas.draw()
         fig.canvas.flush_events()
+
+        # draw AQI
+        line_aqi.set_xdata(aq_utils.aqi_timestamps)
+        line_aqi.set_ydata(aq_utils.plot_aqi)
+
+        ax_aqi.relim()
+        ax_aqi.autoscale_view()
+
+        # Redraw the plot
+        fig_aqi.canvas.draw()
+        fig_aqi.canvas.flush_events()
 
 except KeyboardInterrupt:
     print("Real-time plotting stopped.")

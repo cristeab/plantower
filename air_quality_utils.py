@@ -7,11 +7,13 @@ import time
 from collections import deque
 from datetime import timedelta
 import threading as th
+from datetime import datetime
 
 
 class AirQualityUtils:
     ENABLE_ACTIVE_MODE = True
     MAX_QUEUE_LENGTH = 100
+    MAX_AQI_QUEUE_LENGTH = 10000
     MEASUREMENT_WINDOW_LENGTH_SEC = 600 # 10 minutes
     WAKEUP_DELAY_SEC = 30
 
@@ -52,6 +54,10 @@ class AirQualityUtils:
 
     aqi = "N/A"
     elapsed_time = "N/A"
+
+    # dequeue to store the AQI and the associated timestamp
+    aqi_timestamps = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
+    plot_aqi = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
 
     def __init__(self):
         self._lock = th.Lock()
@@ -199,7 +205,11 @@ class AirQualityUtils:
             if aqi is None:
                 continue
             category = AirQualityUtils._aqi_category(aqi)
-            self.aqi = f"{int(aq_utils.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
+            self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
+
+            self.aqi_timestamps.append(datetime.utcnow())
+            self.plot_aqi.append(aqi)
+
             time.sleep(1)  # Update every second
 
     def _start_continuous_update(self):
