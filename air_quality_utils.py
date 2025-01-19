@@ -60,7 +60,7 @@ class AirQualityUtils:
     plot_aqi = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
 
     def __init__(self):
-        self._lock = th.Lock()
+        self.lock = th.Lock()
         self._start_time = None
         serial_port = AirQualityUtils._find_serial_port()
         self._pt = plantower.Plantower(serial_port)
@@ -84,7 +84,7 @@ class AirQualityUtils:
         self._start_continuous_update()
 
     def _add_pm25_reading(self, current_time, value):
-        with self._lock:
+        with self.lock:
             self.pm_timestamps.append(current_time)
             self.pm_readings.append(value)
 
@@ -94,7 +94,7 @@ class AirQualityUtils:
                 self.pm_readings.popleft()
 
     def _calculate_nowcast_aqi(self):
-        with self._lock:
+        with self.lock:
             if len(self.pm_readings) < 2:
                 return None
 
@@ -207,8 +207,9 @@ class AirQualityUtils:
             category = AirQualityUtils._aqi_category(aqi)
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
-            self.aqi_timestamps.append(datetime.utcnow())
-            self.plot_aqi.append(aqi)
+            with self.lock:
+                self.aqi_timestamps.append(datetime.utcnow())
+                self.plot_aqi.append(aqi)
 
             time.sleep(1)  # Update every second
 

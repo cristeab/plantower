@@ -128,8 +128,9 @@ try:
         fig.canvas.flush_events()
 
         # draw AQI
-        line_aqi.set_xdata(aq_utils.aqi_timestamps)
-        line_aqi.set_ydata(aq_utils.plot_aqi)
+        with aq_utils.lock:
+            line_aqi.set_xdata(aq_utils.aqi_timestamps)
+            line_aqi.set_ydata(aq_utils.plot_aqi)
         ax_aqi.set_title(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
         ax_aqi.relim()
