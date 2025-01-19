@@ -36,8 +36,12 @@ for label, (low, high, color) in thresholds.items():
     ax_aqi.axhspan(low, high, alpha=0.2, color=color, label=label)
     # Calculate middle position for text
     yaxis_ticks.append(high)
+    # add text label
     y_pos = (low + high) / 2
-    ax_aqi.text(ax_aqi.get_xlim()[0], y_pos, label, va='center', ha='left', fontsize=10)
+    ax_aqi.text(0.02, y_pos, label, verticalalignment='center', 
+                fontweight='bold', fontsize=8, color='black',
+                transform=ax_aqi.get_yaxis_transform(),
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=2))
     
 # Customize the plot
 ax_aqi.set_ylabel('Air Quality Index (AQI)')
