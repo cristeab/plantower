@@ -38,7 +38,7 @@ for label, (low, high, color) in thresholds.items():
 ax_aqi.set_ylabel('Air Quality Index (AQI)')
 ax_aqi.set_xlabel('Time')
 ax_aqi.grid(True, linestyle='--', alpha=0.7)
-ax_aqi.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+ax_aqi.legend(bbox_to_anchor=(0.05, 1), loc='upper left')
 ax_aqi.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
 # Set y-axis limits to cover all AQI ranges
@@ -130,6 +130,7 @@ try:
         # draw AQI
         line_aqi.set_xdata(aq_utils.aqi_timestamps)
         line_aqi.set_ydata(aq_utils.plot_aqi)
+        ax_aqi.set_title(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
         ax_aqi.relim()
         ax_aqi.autoscale_view()
