@@ -1,6 +1,6 @@
 # 10 minutes Air Quality Index (AQI) computation
 
-Add scripts for reading data from a PM sensor in passive mode, compute 10 min AQI and show
+Scripts for reading data from a PM sensor in passive mode, compute 10 min AQI and show
 graphically the data:
 
 - air_quality.py: main script for displaying graphically the data
@@ -8,6 +8,10 @@ graphically the data:
 - air_quality_utils.py: contains a class with utilities for AQI computation
 
 The scripts have been tested on Debian 12 and use a slighty modified version of the interface below.
+
+![AQI](screenshots/aqi.png "10 min AQI")
+
+![PM](screenshots/pm.png "Concentration and Number of particles")
 
 # Plantower Particulate Sensor Python interface
 A basic python interface for interacting with the plantower PM sensors.  This code has been tested with the following devices:
