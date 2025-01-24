@@ -14,7 +14,7 @@ class PersistentStorage:
     aqi_bucket="aqi"
 
     def __init__(self):
-        token = os.environ.get("INFLUXDB_TOKEN")
+        token = os.environ.get("INFLUX_TOKEN")
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
         self._disabled = False
