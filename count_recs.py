@@ -8,24 +8,30 @@ import os
 url = "http://localhost:8086"
 token = os.environ.get("INFLUX_TOKEN")
 org = "home"
-bucket = "aqi"
+bucket = "pm"
 
 # Create a client instance
 client = InfluxDBClient(url=url, token=token, org=org)
 query_api = client.query_api()
 
-# Query for last 24 hours of air quality data
+# Query for air quality data
 query = f'''
 from(bucket: "{bucket}")
-  |> range(start: -3h)
+  |> range(start: 0)
   |> filter(fn: (r) => r["_measurement"] == "air_quality_data")
-  |> filter(fn: (r) => r["_field"] == "pm25_cf1_aqi")
+  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
 '''
 
 # Execute query
 tables = query_api.query(query)
+if 1 != len(tables):
+    print(f'Warning: got {len(tables)} tables')
 
 # Process results
+count = 0
 for table in tables:
     for record in table.records:
-        print(f"{record.get_time()} - {record.get_value()}")
+        count += 1
+        # print(record)
+
+print(f'Bucket \'{bucket}\' has {count} records')
