@@ -1,11 +1,12 @@
 # 10 minutes Air Quality Index (AQI) computation
 
-Add scripts for reading data from a PM sensor in passive mode, compute 10 min AQI and show
-graphically the data:
+Add scripts for reading data from a PM sensor in passive mode, compute 10 min AQI and show graphically the data. The read data and the computed AQI are stored in a time series database (InfluxDB).
 
 - air_quality.py: main script for displaying graphically the data
 
 - air_quality_utils.py: contains a class with utilities for AQI computation
+
+- persistent_storage.py: contains the class for storing data into the persistent storage
 
 The scripts have been tested on Debian 12 and use a slighty modified version of the interface below.
 

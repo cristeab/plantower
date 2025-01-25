@@ -8,7 +8,7 @@ import os
 url = "http://localhost:8086"
 token = os.environ.get("INFLUX_TOKEN")
 org = "home"
-bucket = "pm"
+bucket = "aqi"
 
 # Create a client instance
 client = InfluxDBClient(url=url, token=token, org=org)
