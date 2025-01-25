@@ -17,11 +17,8 @@ class PersistentStorage:
         token = os.environ.get("INFLUX_TOKEN")
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
-        self._disabled = False
 
     def write_pm(self, sample):
-        if self._disabled:
-            return
         utc_timestamp = sample.timestamp.astimezone(timezone.utc)
         point = (
             Point("air_quality_data")
@@ -41,9 +38,7 @@ class PersistentStorage:
         )
         try:
             self._write_api.write(bucket=self.pm_bucket, org=self.org, record=point)
-            self._disabled = False
         except InfluxDBError as e:
-            self._disabled = True
             if e.response.status == 401:
                 print(f"Authentication error: {e}")
             elif e.response.status == 404:
@@ -51,12 +46,9 @@ class PersistentStorage:
             else:
                 print(f"An error occurred while writing data: {e}")
         except Exception as e:
-            self._disabled = True
             print(f"An unexpected error occurred: {e}")
 
     def write_aqi(self, timestamp, pm25_cf1_aqi):
-        if self._disabled:
-            return
         utc_timestamp = timestamp.astimezone(timezone.utc)
         point = (
             Point("air_quality_data")
@@ -65,9 +57,7 @@ class PersistentStorage:
         )
         try:
             self._write_api.write(bucket=self.aqi_bucket, org=self.org, record=point)
-            self._disabled = False
         except InfluxDBError as e:
-            self._disabled = True
             if e.response.status == 401:
                 print(f"Authentication error: {e}")
             elif e.response.status == 404:
@@ -75,5 +65,4 @@ class PersistentStorage:
             else:
                 print(f"An error occurred while writing data: {e}")
         except Exception as e:
-            self._disabled = True
             print(f"An unexpected error occurred: {e}")
