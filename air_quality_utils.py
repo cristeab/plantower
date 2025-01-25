@@ -7,7 +7,7 @@ import time
 from collections import deque
 from datetime import timedelta
 import threading as th
-from datetime import datetime
+from persistent_storage import PersistentStorage
 
 
 class AirQualityUtils:
@@ -80,7 +80,7 @@ class AirQualityUtils:
             new_serial_port = AirQualityUtils._find_serial_port()
             if new_serial_port != serial_port:
                 self._pt = plantower.Plantower(new_serial_port)
-        
+        self._storage = PersistentStorage()
         self._start_continuous_update()
 
     def _add_pm25_reading(self, current_time, value):
@@ -199,6 +199,9 @@ class AirQualityUtils:
 
         self._update_elapsed_time(sample.timestamp)
 
+        # store sample into storage
+        self._storage.write_pm(sample)
+
     def _continuous_update(self):
         while True:
             aqi = self._calculate_nowcast_aqi()
@@ -208,8 +211,11 @@ class AirQualityUtils:
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
             with self.lock:
-                self.aqi_timestamps.append(datetime.utcnow())
+                timestamp = self.pm_timestamps[-1]
+                self.aqi_timestamps.append(timestamp)
                 self.plot_aqi.append(aqi)
+                # store into persistent storage
+                self._storage.write_aqi(timestamp, aqi)
 
             time.sleep(1)  # Update every second
 
