@@ -7,7 +7,6 @@ import time
 from collections import deque
 from datetime import timedelta
 import threading as th
-from datetime import datetime
 from persistent_storage import PersistentStorage
 
 
@@ -212,7 +211,7 @@ class AirQualityUtils:
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
             with self.lock:
-                timestamp = datetime.utcnow()
+                timestamp = self.pm_timestamps[-1]
                 self.aqi_timestamps.append(timestamp)
                 self.plot_aqi.append(aqi)
                 # store into persistent storage

@@ -4,7 +4,6 @@ import influxdb_client, os, time
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
-from datetime import datetime, timezone
 
 
 class PersistentStorage:
@@ -19,10 +18,9 @@ class PersistentStorage:
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
 
     def write_pm(self, sample):
-        utc_timestamp = sample.timestamp.astimezone(timezone.utc)
         point = (
             Point("air_quality_data")
-            .time(utc_timestamp)
+            .time(sample.timestamp)
             .field("pm10_cf1", sample.pm10_cf1)
             .field("pm25_cf1", sample.pm25_cf1)
             .field("pm100_cf1", sample.pm100_cf1)
@@ -49,10 +47,9 @@ class PersistentStorage:
             print(f"An unexpected error occurred: {e}")
 
     def write_aqi(self, timestamp, pm25_cf1_aqi):
-        utc_timestamp = timestamp.astimezone(timezone.utc)
         point = (
             Point("air_quality_data")
-            .time(utc_timestamp)
+            .time(timestamp)
             .field("pm25_cf1_aqi", pm25_cf1_aqi)
         )
         try:
