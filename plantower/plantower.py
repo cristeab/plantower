@@ -6,7 +6,7 @@
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from serial import Serial, SerialException
 
 DEFAULT_SERIAL_PORT = "/dev/ttyUSB0" # Serial port to use if no other specified
@@ -37,7 +37,7 @@ class PlantowerReading(object):
             Takes a line from the Plantower serial port and converts it into
             an object containing the data
         """
-        self.timestamp = datetime.now(datetime.timezone.utc)
+        self.timestamp = datetime.now(timezone.utc).timestamp()
         self.pm10_cf1 = round(line[4] * 256 + line[5], 1)
         self.pm25_cf1 = round(line[6] * 256 + line[7], 1)
         self.pm100_cf1 = round(line[8] * 256 + line[9], 1)
