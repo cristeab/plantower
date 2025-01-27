@@ -129,7 +129,8 @@ class AirQualityUtils:
     def _find_serial_port():
         ports = list(serial.tools.list_ports.comports())
         for port in ports:
-            if 'ttyACM' in port.device:
+            if 'ttyACM' in port.device or 'ttyUSB' in port.device:
+                print(f'Using sensor on port {port.device}')
                 return port.device
         print('No serial port')
         sys.exit(1)
