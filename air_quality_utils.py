@@ -127,13 +127,38 @@ class AirQualityUtils:
     
     @staticmethod
     def _find_serial_port():
+        # List all available serial ports
         ports = list(serial.tools.list_ports.comports())
-        for port in ports:
-            if 'ttyACM' in port.device or 'ttyUSB' in port.device:
-                print(f'Using sensor on port {port.device}')
-                return port.device
-        print('No serial port')
-        sys.exit(1)
+
+        # Filter ports that match 'ttyACM' or 'ttyUSB'
+        filtered_ports = [port for port in ports if 'ttyACM' in port.device or 'ttyUSB' in port.device]
+
+        if not filtered_ports:
+            print('No matching serial ports found.')
+            sys.exit(1)
+
+        # If only one port is found, use it automatically
+        if len(filtered_ports) == 1:
+            selected_port = filtered_ports[0].device
+            print(f'Using sensor on port {selected_port}')
+            return selected_port
+
+        # If multiple ports are found, prompt the user to select one
+        print('Multiple serial ports found:')
+        for i, port in enumerate(filtered_ports):
+            print(f'{i + 1}: {port.device}')
+
+        while True:
+            try:
+                choice = int(input('Select the desired port by number: '))
+                if 1 <= choice <= len(filtered_ports):
+                    selected_port = filtered_ports[choice - 1].device
+                    print(f'Using sensor on port {selected_port}')
+                    return selected_port
+                else:
+                    print(f'Please enter a number between 1 and {len(filtered_ports)}.')
+            except ValueError:
+                print('Invalid input. Please enter a number.')
 
     @staticmethod
     def _aqi_category(aqi):
