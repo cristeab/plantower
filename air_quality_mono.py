@@ -3,7 +3,7 @@
     Basic test script to demonstrate active mode of the plantower
 """
 
-from air_quality_utils import AirQualityUtils
+from air_quality_utils_mono import AirQualityUtilsMono
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -11,7 +11,7 @@ from statistics import mean
 import time
 
 
-aq_utils = AirQualityUtils()
+aq_utils = AirQualityUtilsMono()
 
 # Set up the plot
 matplotlib.use('TkAgg')

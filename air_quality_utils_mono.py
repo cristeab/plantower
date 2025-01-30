@@ -10,7 +10,7 @@ import threading as th
 from persistent_storage import PersistentStorage
 
 
-class AirQualityUtils:
+class AirQualityUtilsMono:
     ENABLE_ACTIVE_MODE = True
     MAX_QUEUE_LENGTH = 100
     MAX_AQI_QUEUE_LENGTH = 10000
@@ -62,7 +62,7 @@ class AirQualityUtils:
     def __init__(self):
         self.lock = th.Lock()
         self._start_time = None
-        serial_port = AirQualityUtils._find_serial_port()
+        serial_port = AirQualityUtilsMono._find_serial_port()
         self._pt = plantower.Plantower(serial_port)
 
         if self.ENABLE_ACTIVE_MODE:
@@ -77,7 +77,7 @@ class AirQualityUtils:
                 print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
             print(f"\nDone")
 
-            new_serial_port = AirQualityUtils._find_serial_port()
+            new_serial_port = AirQualityUtilsMono._find_serial_port()
             if new_serial_port != serial_port:
                 self._pt = plantower.Plantower(new_serial_port)
         self._storage = PersistentStorage()
@@ -233,7 +233,7 @@ class AirQualityUtils:
             aqi = self._calculate_nowcast_aqi()
             if aqi is None:
                 continue
-            category = AirQualityUtils._aqi_category(aqi)
+            category = AirQualityUtilsMono._aqi_category(aqi)
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
             with self.lock:
