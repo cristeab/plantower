@@ -18,4 +18,4 @@ try:
         print(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count}')
 
 except KeyboardInterrupt:
-    print("Real-time plotting stopped.")
+    print("Real-time data sampling stopped.")
