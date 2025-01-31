@@ -17,9 +17,6 @@ class AirQualityUtils:
     MEASUREMENT_WINDOW_LENGTH_SEC = 600 # 10 minutes
     WAKEUP_DELAY_SEC = 30
 
-    PM_LABELS = ("CF1", "STD")
-    PARTICLE_SIZES = (">0.3um", ">0.5um", ">1.0um", ">2.5um", ">5.0um", ">10um")
-
     # AQI breakpoints for PM2.5
     BREAKPOINTS = [
                 (0.0, 12.0, 0, 50),
@@ -44,25 +41,6 @@ class AirQualityUtils:
 
         serial_ports = AirQualityUtils._find_serial_ports()
         serial_port_count = len(serial_ports)
-
-        self.timestamps = deque(maxlen=self.MAX_QUEUE_LENGTH)
-
-        self.pm1 = {
-            size: tuple(deque(maxlen=self.MAX_QUEUE_LENGTH) for _ in range(serial_port_count))
-            for size in self.PM_LABELS
-        }
-        self.pm2_5 = {
-            size: tuple(deque(maxlen=self.MAX_QUEUE_LENGTH) for _ in range(serial_port_count))
-            for size in self.PM_LABELS
-        }
-        self.pm10 = {
-            size: tuple(deque(maxlen=self.MAX_QUEUE_LENGTH) for _ in range(serial_port_count))
-            for size in self.PM_LABELS
-        }
-        self.particle_counts = {
-            size: tuple(deque(maxlen=self.MAX_QUEUE_LENGTH) for _ in range(serial_port_count))
-            for size in self.PARTICLE_SIZES
-        }
 
         self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(serial_port_count))
 
@@ -204,33 +182,18 @@ class AirQualityUtils:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
     def read_sample(self):
+        self.sample_count += 1
+
         mean_pm2_5_cf1 = 0
+        timestamp = None
         sensor_count = len(self._pt)
         for i in range(0, sensor_count):
             sample = self._pt[i].read()
-            self.sample_count += 1
 
             if self._start_time is None:
                 self._start_time = sample.timestamp
 
-            # Append new data to the lists
-            self.plot_timestamps.append(sample.timestamp)
-
-            self.pm1["CF1"][i].append(sample.pm10_cf1)
-            self.pm2_5["CF1"][i].append(sample.pm25_cf1)
-            self.pm10["CF1"][i].append(sample.pm100_cf1)
-
-            self.pm1["STD"][i].append(sample.pm10_std)
-            self.pm2_5["STD"][i].append(sample.pm25_std)
-            self.pm10["STD"][i].append(sample.pm100_std)
-
-            self.particle_counts[">0.3um"][i].append(sample.gr03um)
-            self.particle_counts[">0.5um"][i].append(sample.gr05um)
-            self.particle_counts[">1.0um"][i].append(sample.gr10um)
-            self.particle_counts[">2.5um"][i].append(sample.gr25um)
-            self.particle_counts[">5.0um"][i].append(sample.gr50um)
-            self.particle_counts[">10um"][i].append(sample.gr100um)
-
+            timestamp = sample.timestamp
             # compute mean PM from all sensors
             mean_pm2_5_cf1 += sample.pm25_cf1
 
@@ -238,9 +201,9 @@ class AirQualityUtils:
             self._storage.write_pm(i, sample)
 
         # update PM data for AQI computation
-        self._add_pm25_reading(sample.timestamp, mean_pm2_5_cf1 / sensor_count)
+        self._add_pm25_reading(timestamp, mean_pm2_5_cf1 / sensor_count)
 
-        self._update_elapsed_time(sample.timestamp)
+        self._update_elapsed_time(timestamp)
 
     def _continuous_update(self):
         while True:
