@@ -37,10 +37,6 @@ class AirQualityUtils:
     aqi = "N/A"
     elapsed_time = "N/A"
 
-    # dequeue to store the AQI and the associated timestamp
-    aqi_timestamps = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
-    plot_aqi = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
-
     def __init__(self):
         self.sample_count = 0
         self.lock = th.Lock()
@@ -256,8 +252,6 @@ class AirQualityUtils:
 
             with self.lock:
                 timestamp = self.pm_timestamps[-1]
-                self.aqi_timestamps.append(timestamp)
-                self.plot_aqi.append(aqi)
                 # store into persistent storage
                 self._storage.write_aqi(timestamp, aqi)
 

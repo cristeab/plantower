@@ -226,7 +226,7 @@ class AirQualityUtilsMono:
         self._update_elapsed_time(sample.timestamp)
 
         # store sample into storage
-        self._storage.write_pm(sample)
+        self._storage.write_pm(0, sample)
 
     def _continuous_update(self):
         while True:
