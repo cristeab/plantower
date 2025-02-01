@@ -8,6 +8,7 @@ from collections import deque
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
+import numpy as np
 
 
 class AirQualityUtils:
@@ -18,7 +19,7 @@ class AirQualityUtils:
     WAKEUP_DELAY_SEC = 30
 
     # AQI breakpoints for PM2.5
-    BREAKPOINTS = [
+    BREAKPOINTS_PM2_5 = [
                 (0.0, 12.0, 0, 50),
                 (12.1, 35.4, 51, 100),
                 (35.5, 55.4, 101, 150),
@@ -95,7 +96,7 @@ class AirQualityUtils:
 
             nowcast_concentration = weighted_sum / weight_sum
 
-            for bp_low, bp_high, aqi_low, aqi_high in self.BREAKPOINTS:
+            for bp_low, bp_high, aqi_low, aqi_high in self.BREAKPOINTS_PM2_5:
                 if bp_low <= nowcast_concentration <= bp_high:
                     aqi = ((aqi_high - aqi_low) / (bp_high - bp_low)) * (nowcast_concentration - bp_low) + aqi_low
                     return round(aqi, 1)
@@ -184,24 +185,30 @@ class AirQualityUtils:
     def read_sample(self):
         self.sample_count += 1
 
-        mean_pm2_5_cf1 = 0
         timestamp = None
         sensor_count = len(self._pt)
-        for i in range(0, sensor_count):
-            sample = self._pt[i].read()
+        pm2_5_cf1 = np.zeros(sensor_count)
+        for i in range(sensor_count):
+            try:
+                sample = self._pt[i].read()
+            except plantower.PlantowerException as e:
+                # Handle the specific exception
+                print(f"Error: {e}")
+                self.sample_count -= 1
+                return
 
             if self._start_time is None:
                 self._start_time = sample.timestamp
 
             timestamp = sample.timestamp
             # compute mean PM from all sensors
-            mean_pm2_5_cf1 += sample.pm25_cf1
+            pm2_5_cf1[i] = sample.pm25_cf1
 
             # store sample into storage
             self._storage.write_pm(i, sample)
 
         # update PM data for AQI computation
-        self._add_pm25_reading(timestamp, mean_pm2_5_cf1 / sensor_count)
+        self._add_pm25_reading(timestamp, np.mean(pm2_5_cf1))
 
         self._update_elapsed_time(timestamp)
 

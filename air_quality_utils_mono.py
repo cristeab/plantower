@@ -196,7 +196,13 @@ class AirQualityUtilsMono:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
     def read_sample(self):
-        sample = self._pt.read()
+        try:
+            sample = self._pt.read()
+        except plantower.PlantowerException as e:
+            # Handle the specific exception
+            print(f"Error: {e}")
+            return
+
         self.sample_count += 1
 
         if self._start_time is None:
