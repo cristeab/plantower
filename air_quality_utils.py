@@ -8,7 +8,6 @@ from collections import deque
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-import numpy as np
 
 
 class AirQualityUtils:
@@ -34,6 +33,7 @@ class AirQualityUtils:
 
     aqi = "N/A"
     elapsed_time = "N/A"
+    sensors_relative_error_percent = 0
 
     def __init__(self):
         self.sample_count = 0
@@ -187,7 +187,7 @@ class AirQualityUtils:
 
         timestamp = None
         sensor_count = len(self._pt)
-        pm2_5_cf1 = np.zeros(sensor_count)
+        pm2_5_cf1 = [0] * sensor_count
         for i in range(sensor_count):
             try:
                 sample = self._pt[i].read()
@@ -208,7 +208,11 @@ class AirQualityUtils:
             self._storage.write_pm(i, sample)
 
         # update PM data for AQI computation
-        self._add_pm25_reading(timestamp, np.mean(pm2_5_cf1))
+        self._add_pm25_reading(timestamp, sum(pm2_5_cf1) / sensor_count)
+
+        # update relative error
+        if 2 == sensor_count:
+            self.sensors_relative_error_percent = int(100 * abs(pm2_5_cf1[1] - pm2_5_cf1[0]) / (pm2_5_cf1[0] + 1e-10))
 
         self._update_elapsed_time(timestamp)
 
