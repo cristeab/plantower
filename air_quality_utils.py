@@ -5,6 +5,8 @@ import sys
 import plantower
 import time
 from collections import deque
+import numpy as np
+from sklearn.metrics import r2_score
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
@@ -12,10 +14,9 @@ from persistent_storage import PersistentStorage
 
 class AirQualityUtils:
     ENABLE_ACTIVE_MODE = True
-    MAX_QUEUE_LENGTH = 100
-    MAX_AQI_QUEUE_LENGTH = 10000
     MEASUREMENT_WINDOW_LENGTH_SEC = 600 # 10 minutes
     WAKEUP_DELAY_SEC = 30
+    MAX_ACCURACY_SENSOR_READINGS_LENGTH = 5
 
     # AQI breakpoints for PM2.5
     BREAKPOINTS_PM2_5 = [
@@ -34,6 +35,7 @@ class AirQualityUtils:
     aqi = "N/A"
     elapsed_time = "N/A"
     sensors_relative_error_percent = 0
+    sensors_coefficient_of_determination = 0
 
     def __init__(self):
         self.sample_count = 0
@@ -41,15 +43,17 @@ class AirQualityUtils:
         self._start_time = None
 
         serial_ports = AirQualityUtils._find_serial_ports()
-        serial_port_count = len(serial_ports)
+        self._serial_port_count = len(serial_ports)
 
-        self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(serial_port_count))
+        self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
+
+        self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(self._serial_port_count))
 
         if self.ENABLE_ACTIVE_MODE:
             print(f"Making sure the sensors are correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
             #make sure it's in the correct mode if it's been used for passive beforehand
             #Not needed if freshly plugged in
-            for i in range(0, serial_port_count):
+            for i in range(0, self._serial_port_count):
                 self._pt[i].mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
                 self._pt[i].set_to_wakeup() #ensure fan is spinning
             # give it a chance to stabilise
@@ -182,13 +186,35 @@ class AirQualityUtils:
         else:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
+    def _compute_sensor_accuracy(self):
+        # Make sure the queues are full
+        if len(self._pm2_5_cf1[0]) < self.MAX_ACCURACY_SENSOR_READINGS_LENGTH:
+            return
+
+        # Convert deques to numpy arrays
+        arrays = [np.array(deque) for deque in self._pm2_5_cf1]
+
+        # Mean Relative Error (using first sensor as reference)
+        ref = arrays[0]
+        errors = []
+        for arr in arrays[1:]:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                relative_errors = np.abs(arr - ref) / ref * 100
+                relative_errors = relative_errors[np.isfinite(relative_errors)]
+            errors.extend(relative_errors.tolist())
+        self.sensors_relative_error_percent = np.mean(errors)
+
+        # R² calculation (pairwise with first sensor)
+        r2_values = []
+        for arr in arrays[1:]:
+            r2_values.append(r2_score(ref, arr))
+        self.sensors_coefficient_of_determination = np.mean(r2_values)
+
     def read_sample(self):
         self.sample_count += 1
 
         timestamp = None
-        sensor_count = len(self._pt)
-        pm2_5_cf1 = [0] * sensor_count
-        for i in range(sensor_count):
+        for i in range(self._serial_port_count):
             try:
                 sample = self._pt[i].read()
             except plantower.PlantowerException as e:
@@ -201,18 +227,18 @@ class AirQualityUtils:
                 self._start_time = sample.timestamp
 
             timestamp = sample.timestamp
-            # compute mean PM from all sensors
-            pm2_5_cf1[i] = sample.pm25_cf1
+
+            # update PM reading for accuracy computation
+            self._pm2_5_cf1[i].append(sample.pm25_cf1)
 
             # store sample into storage
             self._storage.write_pm(i, sample)
 
         # update PM data for AQI computation
-        self._add_pm25_reading(timestamp, sum(pm2_5_cf1) / sensor_count)
+        pm2_5_cf1_mean = sum(deq[-1] for deq in self._pm2_5_cf1) / self._serial_port_count
+        self._add_pm25_reading(timestamp, pm2_5_cf1_mean)
 
-        # update relative error
-        if 2 == sensor_count:
-            self.sensors_relative_error_percent = int(100 * abs(pm2_5_cf1[1] - pm2_5_cf1[0]) / (pm2_5_cf1[0] + 1e-10))
+        self._compute_sensor_accuracy()
 
         self._update_elapsed_time(timestamp)
 
