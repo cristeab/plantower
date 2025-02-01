@@ -10,7 +10,7 @@ import threading as th
 from persistent_storage import PersistentStorage
 
 
-class AirQualityUtils:
+class AirQualityUtilsMono:
     ENABLE_ACTIVE_MODE = True
     MAX_QUEUE_LENGTH = 100
     MAX_AQI_QUEUE_LENGTH = 10000
@@ -18,7 +18,7 @@ class AirQualityUtils:
     WAKEUP_DELAY_SEC = 30
 
     # AQI breakpoints for PM2.5
-    BREAKPOINTS_PM2_5 = [
+    BREAKPOINTS = [
                 (0.0, 12.0, 0, 50),
                 (12.1, 35.4, 51, 100),
                 (35.5, 55.4, 101, 150),
@@ -27,37 +27,59 @@ class AirQualityUtils:
                 (250.5, 500.4, 301, 500)
             ]
 
+    sample_count = 0
+    plot_timestamps = deque(maxlen=MAX_QUEUE_LENGTH)
+
+    pm1_cf1 = deque(maxlen=MAX_QUEUE_LENGTH)
+    pm2_5_cf1 = deque(maxlen=MAX_QUEUE_LENGTH)
+    pm10_cf1 = deque(maxlen=MAX_QUEUE_LENGTH)
+
+    pm1_std = deque(maxlen=MAX_QUEUE_LENGTH)
+    pm2_5_std = deque(maxlen=MAX_QUEUE_LENGTH)
+    pm10_std = deque(maxlen=MAX_QUEUE_LENGTH)
+
+    particle_counts = {
+        ">0.3um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">0.5um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">1.0um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">2.5um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">5.0um": deque(maxlen=MAX_QUEUE_LENGTH),
+        ">10um": deque(maxlen=MAX_QUEUE_LENGTH),
+    }
+    PARTICLE_SIZES = list(particle_counts.keys())
+
     # Initialize a deque to store a 10 minutes window with PM2.5 readings and their timestamps
     pm_timestamps = deque()
     pm_readings = deque()
 
     aqi = "N/A"
     elapsed_time = "N/A"
-    sensors_relative_error_percent = 0
+
+    # dequeue to store the AQI and the associated timestamp
+    aqi_timestamps = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
+    plot_aqi = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
 
     def __init__(self):
-        self.sample_count = 0
         self.lock = th.Lock()
         self._start_time = None
-
-        serial_ports = AirQualityUtils._find_serial_ports()
-        serial_port_count = len(serial_ports)
-
-        self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(serial_port_count))
+        serial_port = AirQualityUtilsMono._find_serial_port()
+        self._pt = plantower.Plantower(serial_port)
 
         if self.ENABLE_ACTIVE_MODE:
-            print(f"Making sure the sensors are correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
+            print(f"Making sure the sensor is correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
             #make sure it's in the correct mode if it's been used for passive beforehand
             #Not needed if freshly plugged in
-            for i in range(0, serial_port_count):
-                self._pt[i].mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
-                self._pt[i].set_to_wakeup() #ensure fan is spinning
+            self._pt.mode_change(plantower.PMS_ACTIVE_MODE) #change back into active mode
+            self._pt.set_to_wakeup() #ensure fan is spinning
             # give it a chance to stabilise
             for s in range(0, self.WAKEUP_DELAY_SEC):
                 time.sleep(1)
                 print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
             print(f"\nDone")
 
+            new_serial_port = AirQualityUtilsMono._find_serial_port()
+            if new_serial_port != serial_port:
+                self._pt = plantower.Plantower(new_serial_port)
         self._storage = PersistentStorage()
         self._start_continuous_update()
 
@@ -96,7 +118,7 @@ class AirQualityUtils:
 
             nowcast_concentration = weighted_sum / weight_sum
 
-            for bp_low, bp_high, aqi_low, aqi_high in self.BREAKPOINTS_PM2_5:
+            for bp_low, bp_high, aqi_low, aqi_high in self.BREAKPOINTS:
                 if bp_low <= nowcast_concentration <= bp_high:
                     aqi = ((aqi_high - aqi_low) / (bp_high - bp_low)) * (nowcast_concentration - bp_low) + aqi_low
                     return round(aqi, 1)
@@ -104,7 +126,7 @@ class AirQualityUtils:
         return None  # If concentration is out of range
     
     @staticmethod
-    def _find_serial_ports():
+    def _find_serial_port():
         # List all available serial ports
         ports = list(serial.tools.list_ports.comports())
 
@@ -126,26 +148,17 @@ class AirQualityUtils:
         for i, port in enumerate(filtered_ports):
             print(f'{i + 1}: {port.device}')
 
-        selected_ports = []
         while True:
             try:
-                choice = input('Select the desired ports by number (comma-separated): ')
-                choices = [int(x) for x in choice.split(',')]
-                for choice in choices:
-                    if 1 <= choice <= len(filtered_ports):
-                        if filtered_ports[choice - 1].device not in selected_ports:
-                            selected_ports.append(filtered_ports[choice - 1].device)
-                    else:
-                        print(f'Invalid choice: {choice}. Please enter numbers between 1 and {len(filtered_ports)}.')
-                        continue
-                if 0 < len(selected_ports):
-                    break
+                choice = int(input('Select the desired port by number: '))
+                if 1 <= choice <= len(filtered_ports):
+                    selected_port = filtered_ports[choice - 1].device
+                    print(f'Using sensor on port {selected_port}')
+                    return selected_port
                 else:
-                    print('At least one port must be selected')
+                    print(f'Please enter a number between 1 and {len(filtered_ports)}.')
             except ValueError:
-                print('Invalid input. Please enter numbers separated by commas.')
-
-        return selected_ports
+                print('Invalid input. Please enter a number.')
 
     @staticmethod
     def _aqi_category(aqi):
@@ -183,49 +196,56 @@ class AirQualityUtils:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
     def read_sample(self):
+        try:
+            sample = self._pt.read()
+        except plantower.PlantowerException as e:
+            # Handle the specific exception
+            print(f"Error: {e}")
+            return
+
         self.sample_count += 1
 
-        timestamp = None
-        sensor_count = len(self._pt)
-        pm2_5_cf1 = [0] * sensor_count
-        for i in range(sensor_count):
-            try:
-                sample = self._pt[i].read()
-            except plantower.PlantowerException as e:
-                # Handle the specific exception
-                print(f"Error: {e}")
-                self.sample_count -= 1
-                return
+        if self._start_time is None:
+            self._start_time = sample.timestamp
 
-            if self._start_time is None:
-                self._start_time = sample.timestamp
+        # Append new data to the lists
+        self.plot_timestamps.append(sample.timestamp)
 
-            timestamp = sample.timestamp
-            # compute mean PM from all sensors
-            pm2_5_cf1[i] = sample.pm25_cf1
+        self.pm1_cf1.append(sample.pm10_cf1)
+        self.pm2_5_cf1.append(sample.pm25_cf1)
+        self.pm10_cf1.append(sample.pm100_cf1)
 
-            # store sample into storage
-            self._storage.write_pm(i, sample)
+        self.pm1_std.append(sample.pm10_std)
+        self.pm2_5_std.append(sample.pm25_std)
+        self.pm10_std.append(sample.pm100_std)
+
+        self.particle_counts[">0.3um"].append(sample.gr03um)
+        self.particle_counts[">0.5um"].append(sample.gr05um)
+        self.particle_counts[">1.0um"].append(sample.gr10um)
+        self.particle_counts[">2.5um"].append(sample.gr25um)
+        self.particle_counts[">5.0um"].append(sample.gr50um)
+        self.particle_counts[">10um"].append(sample.gr100um)
 
         # update PM data for AQI computation
-        self._add_pm25_reading(timestamp, sum(pm2_5_cf1) / sensor_count)
+        self._add_pm25_reading(sample.timestamp, sample.pm25_cf1)
 
-        # update relative error
-        if 2 == sensor_count:
-            self.sensors_relative_error_percent = int(100 * abs(pm2_5_cf1[1] - pm2_5_cf1[0]) / (pm2_5_cf1[0] + 1e-10))
+        self._update_elapsed_time(sample.timestamp)
 
-        self._update_elapsed_time(timestamp)
+        # store sample into storage
+        self._storage.write_pm(0, sample)
 
     def _continuous_update(self):
         while True:
             aqi = self._calculate_nowcast_aqi()
             if aqi is None:
                 continue
-            category = AirQualityUtils._aqi_category(aqi)
+            category = AirQualityUtilsMono._aqi_category(aqi)
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
             with self.lock:
                 timestamp = self.pm_timestamps[-1]
+                self.aqi_timestamps.append(timestamp)
+                self.plot_aqi.append(aqi)
                 # store into persistent storage
                 self._storage.write_aqi(timestamp, aqi)
 

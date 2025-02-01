@@ -17,9 +17,9 @@ class PersistentStorage:
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
 
-    def write_pm(self, sample):
+    def write_pm(self, i, sample):
         point = (
-            Point("air_quality_data")
+            Point(f"air_quality_data_{i}")
             .time(sample.timestamp)
             .field("pm10_cf1", sample.pm10_cf1)
             .field("pm25_cf1", sample.pm25_cf1)
