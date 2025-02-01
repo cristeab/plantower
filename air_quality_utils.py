@@ -239,28 +239,28 @@ class AirQualityUtils:
         self.sensors_coefficient_of_determination = round(np.mean(r2_values) * 100)
 
     def read_sample(self):
-        self.sample_count += 1
-
-        timestamp = None
+        # make sure readings from all sensors are available
+        sample = [None] * self._serial_port_count
         for i in range(self._serial_port_count):
             try:
-                sample = self._pt[i].read()
+                sample[i] = self._pt[i].read()
             except plantower.PlantowerException as e:
-                # Handle the specific exception
                 print(f"Error: {e}")
-                self.sample_count -= 1
                 return
-
+        # process readings
+        self.sample_count += 1
+        timestamp = None
+        for i in range(self._serial_port_count):
             if self._start_time is None:
-                self._start_time = sample.timestamp
+                self._start_time = sample[i].timestamp
 
-            timestamp = sample.timestamp
+            timestamp = sample[i].timestamp
 
             # update PM reading for accuracy computation
-            self._pm2_5_cf1[i].append(sample.pm25_cf1)
+            self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
 
             # store sample into storage
-            self._storage.write_pm(i, sample)
+            self._storage.write_pm(i, sample[i])
 
         # update PM data for AQI computation
         pm2_5_cf1_mean = sum(deq[-1] for deq in self._pm2_5_cf1) / self._serial_port_count
