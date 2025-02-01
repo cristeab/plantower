@@ -15,7 +15,7 @@ try:
         aq_utils.read_sample()
 
         # print data
-        print(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count} | Rel. err. {aq_utils.sensors_relative_error_percent:.2f}% | R2 {aq_utils.sensors_coefficient_of_determination:.2f}')
+        print(f'{aq_utils.aqi} | {aq_utils.elapsed_time} | Samples {aq_utils.sample_count} | Rel. err. {aq_utils.sensors_relative_error_percent}% | R2 {aq_utils.sensors_coefficient_of_determination}%')
 
 except KeyboardInterrupt:
     print("Real-time data sampling stopped.")

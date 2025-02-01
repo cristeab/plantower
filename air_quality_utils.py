@@ -6,7 +6,6 @@ import plantower
 import time
 from collections import deque
 import numpy as np
-from sklearn.metrics import r2_score
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
@@ -186,6 +185,35 @@ class AirQualityUtils:
         else:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
+    @staticmethod
+    def _r2_score(y_true, y_pred):
+        """
+        Calculate the R-squared (coefficient of determination) score.
+        
+        Parameters:
+        y_true (array-like): True values
+        y_pred (array-like): Predicted values
+        
+        Returns:
+        float: R-squared score
+        """
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
+        
+        # Calculate the mean of the true values
+        y_mean = np.mean(y_true)
+        
+        # Calculate the total sum of squares
+        ss_tot = np.sum((y_true - y_mean)**2)
+        
+        # Calculate the residual sum of squares
+        ss_res = np.sum((y_true - y_pred)**2)
+        
+        # Calculate R-squared
+        r2 = 1 - ss_res / (ss_tot + 1e-10)
+        
+        return r2
+
     def _compute_sensor_accuracy(self):
         # Make sure the queues are full
         if len(self._pm2_5_cf1[0]) < self.MAX_ACCURACY_SENSOR_READINGS_LENGTH:
@@ -202,13 +230,13 @@ class AirQualityUtils:
                 relative_errors = np.abs(arr - ref) / ref * 100
                 relative_errors = relative_errors[np.isfinite(relative_errors)]
             errors.extend(relative_errors.tolist())
-        self.sensors_relative_error_percent = np.mean(errors)
+        self.sensors_relative_error_percent = round(np.mean(errors))
 
         # R² calculation (pairwise with first sensor)
         r2_values = []
         for arr in arrays[1:]:
-            r2_values.append(r2_score(ref, arr))
-        self.sensors_coefficient_of_determination = np.mean(r2_values)
+            r2_values.append(AirQualityUtils._r2_score(ref, arr))
+        self.sensors_coefficient_of_determination = round(np.mean(r2_values) * 100)
 
     def read_sample(self):
         self.sample_count += 1
