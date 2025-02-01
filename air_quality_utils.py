@@ -6,6 +6,7 @@ import plantower
 import time
 from collections import deque
 import numpy as np
+from scipy import stats
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
@@ -34,7 +35,7 @@ class AirQualityUtils:
     aqi = "N/A"
     elapsed_time = "N/A"
     sensors_relative_error_percent = 0
-    sensors_coefficient_of_determination = 0
+    sensors_spearman_corr = 0
 
     def __init__(self):
         self.sample_count = 0
@@ -185,35 +186,6 @@ class AirQualityUtils:
         else:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
-    @staticmethod
-    def _r2_score(y_true, y_pred):
-        """
-        Calculate the R-squared (coefficient of determination) score.
-        
-        Parameters:
-        y_true (array-like): True values
-        y_pred (array-like): Predicted values
-        
-        Returns:
-        float: R-squared score
-        """
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
-        
-        # Calculate the mean of the true values
-        y_mean = np.mean(y_true)
-        
-        # Calculate the total sum of squares
-        ss_tot = np.sum((y_true - y_mean)**2)
-        
-        # Calculate the residual sum of squares
-        ss_res = np.sum((y_true - y_pred)**2)
-        
-        # Calculate R-squared
-        r2 = 1 - ss_res / (ss_tot + 1e-10)
-        
-        return r2
-
     def _compute_sensor_accuracy(self):
         # Make sure the queues are full
         if len(self._pm2_5_cf1[0]) < self.MAX_ACCURACY_SENSOR_READINGS_LENGTH:
@@ -232,35 +204,36 @@ class AirQualityUtils:
             errors.extend(relative_errors.tolist())
         self.sensors_relative_error_percent = round(np.mean(errors))
 
-        # R² calculation (pairwise with first sensor)
-        r2_values = []
+        # spearman correlation (pairwise with first sensor)
+        values = []
         for arr in arrays[1:]:
-            r2_values.append(AirQualityUtils._r2_score(ref, arr))
-        self.sensors_coefficient_of_determination = round(np.mean(r2_values) * 100)
+            spearman_corr, p_value = stats.spearmanr(ref, arr)
+            values.append(spearman_corr)
+        self.sensors_spearman_corr = round(np.mean(values) * 100)
 
     def read_sample(self):
-        self.sample_count += 1
-
-        timestamp = None
+        # make sure readings from all sensors are available
+        sample = [None] * self._serial_port_count
         for i in range(self._serial_port_count):
             try:
-                sample = self._pt[i].read()
+                sample[i] = self._pt[i].read()
             except plantower.PlantowerException as e:
-                # Handle the specific exception
                 print(f"Error: {e}")
-                self.sample_count -= 1
                 return
-
+        # process readings
+        self.sample_count += 1
+        timestamp = None
+        for i in range(self._serial_port_count):
             if self._start_time is None:
-                self._start_time = sample.timestamp
+                self._start_time = sample[i].timestamp
 
-            timestamp = sample.timestamp
+            timestamp = sample[i].timestamp
 
             # update PM reading for accuracy computation
-            self._pm2_5_cf1[i].append(sample.pm25_cf1)
+            self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
 
             # store sample into storage
-            self._storage.write_pm(i, sample)
+            self._storage.write_pm(i, sample[i])
 
         # update PM data for AQI computation
         pm2_5_cf1_mean = sum(deq[-1] for deq in self._pm2_5_cf1) / self._serial_port_count
