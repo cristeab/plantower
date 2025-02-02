@@ -16,7 +16,7 @@ class AirQualityUtils:
     ENABLE_ACTIVE_MODE = True
     MEASUREMENT_WINDOW_LENGTH_SEC = 600 # 10 minutes
     WAKEUP_DELAY_SEC = 30
-    MAX_ACCURACY_SENSOR_READINGS_LENGTH = 20
+    MAX_ACCURACY_SENSOR_READINGS_LENGTH = 200
 
     # AQI breakpoints for PM2.5
     BREAKPOINTS_PM2_5 = [
@@ -218,7 +218,7 @@ class AirQualityUtils:
             try:
                 sample[i] = self._pt[i].read()
             except plantower.PlantowerException as e:
-                print(f"Error: {e}")
+                print(f"#{i}: {e}")
                 return
         # process readings
         self.sample_count += 1
