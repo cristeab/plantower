@@ -4,6 +4,7 @@ import influxdb_client, os, time
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
+from logging import configure_logger
 
 
 class PersistentStorage:
@@ -13,6 +14,7 @@ class PersistentStorage:
     aqi_bucket="aqi"
 
     def __init__(self):
+        self._logger = configure_logger(self.__class__.__name__)
         token = os.environ.get("INFLUX_TOKEN")
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
@@ -38,13 +40,13 @@ class PersistentStorage:
             self._write_api.write(bucket=self.pm_bucket, org=self.org, record=point)
         except InfluxDBError as e:
             if e.response.status == 401:
-                print(f"Authentication error: {e}")
+                self._logger.error(f"Authentication error: {e}")
             elif e.response.status == 404:
-                print(f"Bucket or organization not found: {e}")
+                self._logger.error(f"Bucket or organization not found: {e}")
             else:
-                print(f"An error occurred while writing data: {e}")
+                self._logger.error(f"An error occurred while writing data: {e}")
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            self._logger.error(f"An unexpected error occurred: {e}")
 
     def write_aqi(self, timestamp, pm25_cf1_aqi):
         point = (
@@ -56,10 +58,10 @@ class PersistentStorage:
             self._write_api.write(bucket=self.aqi_bucket, org=self.org, record=point)
         except InfluxDBError as e:
             if e.response.status == 401:
-                print(f"Authentication error: {e}")
+                self._logger.error(f"Authentication error: {e}")
             elif e.response.status == 404:
-                print(f"Bucket or organization not found: {e}")
+                self._logger.error(f"Bucket or organization not found: {e}")
             else:
-                print(f"An error occurred while writing data: {e}")
+                self._logger.error(f"An error occurred while writing data: {e}")
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            self._logger.error(f"An unexpected error occurred: {e}")
