@@ -10,13 +10,14 @@ from scipy import stats
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
+from logger import configure_logger
 
 
 class AirQualityUtils:
     ENABLE_ACTIVE_MODE = True
     MEASUREMENT_WINDOW_LENGTH_SEC = 600 # 10 minutes
     WAKEUP_DELAY_SEC = 30
-    MAX_ACCURACY_SENSOR_READINGS_LENGTH = 20
+    MAX_ACCURACY_SENSOR_READINGS_LENGTH = 200
 
     # AQI breakpoints for PM2.5
     BREAKPOINTS_PM2_5 = [
@@ -38,11 +39,13 @@ class AirQualityUtils:
     sensors_spearman_corr = 0
 
     def __init__(self):
+        self._logger = configure_logger(self.__class__.__name__)
+
         self.sample_count = 0
         self.lock = th.Lock()
         self._start_time = None
 
-        serial_ports = AirQualityUtils._find_serial_ports()
+        serial_ports = self._find_serial_ports()
         self._serial_port_count = len(serial_ports)
 
         self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
@@ -106,9 +109,8 @@ class AirQualityUtils:
                     return round(aqi, 1)
 
         return None  # If concentration is out of range
-    
-    @staticmethod
-    def _find_serial_ports():
+
+    def _find_serial_ports(self):
         # List all available serial ports
         ports = list(serial.tools.list_ports.comports())
 
@@ -116,13 +118,13 @@ class AirQualityUtils:
         filtered_ports = [port for port in ports if 'ttyACM' in port.device or 'ttyUSB' in port.device]
 
         if not filtered_ports:
-            print('No matching serial ports found.')
+            self._logger.error('No matching serial ports found.')
             sys.exit(1)
 
         # If only one port is found, use it automatically
         if len(filtered_ports) == 1:
             selected_port = filtered_ports[0].device
-            print(f'Using sensor on port {selected_port}')
+            self._logger.info(f'Using sensor on port {selected_port}')
             return selected_port
 
         # If multiple ports are found, prompt the user to select one
@@ -218,7 +220,7 @@ class AirQualityUtils:
             try:
                 sample[i] = self._pt[i].read()
             except plantower.PlantowerException as e:
-                print(f"Error: {e}")
+                print(f"#{i}: {e}")
                 return
         # process readings
         self.sample_count += 1
