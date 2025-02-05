@@ -8,7 +8,7 @@ from collections import deque
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-from logging import configure_logger
+from logger import configure_logger
 
 
 class AirQualityUtilsMono:

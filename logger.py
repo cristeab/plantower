@@ -1,4 +1,6 @@
 import logging
+import logging.handlers
+
 
 def configure_logger(class_name):
     logger = logging.getLogger(f"AQI.{class_name}")
