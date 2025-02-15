@@ -45,7 +45,15 @@ class AirQualityUtils:
         self.lock = th.Lock()
         self._start_time = None
 
-        all_serial_ports = self._find_serial_ports()
+        if serial_ports is None:
+            self._logger.error('At least one serial port must be provided.')
+            sys.exit(1)
+
+        all_serial_ports = AirQualityUtils.find_serial_ports()
+        if all_serial_ports is None:
+            self._logger.error('No serial port(s) found.')
+            sys.exit(1)
+
         if not all(item in all_serial_ports for item in serial_ports):
             self._logger.error(f'Provided serial port(s) {serial_ports} not found among the available serial port(s) {all_serial_ports}')
             sys.exit(1)
@@ -55,6 +63,13 @@ class AirQualityUtils:
         self._pm1_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
         self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
         self._pm10_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+
+        self._gr03um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr05um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr10um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr25um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr50um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr100um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
 
         self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(self._serial_port_count))
         for pt in self._pt:
@@ -118,7 +133,8 @@ class AirQualityUtils:
 
         return None  # If concentration is out of range
 
-    def _find_serial_ports(self):
+    @staticmethod
+    def find_serial_ports():
         # List all available serial ports
         ports = list(serial.tools.list_ports.comports())
 
@@ -126,8 +142,7 @@ class AirQualityUtils:
         filtered_ports = [port for port in ports if 'ttyACM' in port.device or 'ttyUSB' in port.device]
 
         if not filtered_ports:
-            self._logger.error('No matching serial ports found.')
-            sys.exit(1)
+            None
 
         serial_ports = []
         for i, port in enumerate(filtered_ports):
@@ -161,11 +176,11 @@ class AirQualityUtils:
 
         self.elapsed_time = "Elapsed time "
         if days > 0:
-            self.elapsed_time += f"{days} days, {hours:02d} hours, {minutes:02d} min., {seconds:02d} sec."
+            self.elapsed_time += f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}"
         elif hours > 0:
-            self.elapsed_time += f"{hours} hours, {minutes:02d} min., {seconds:02d} sec."
+            self.elapsed_time += f"{hours}:{minutes:02d}:{seconds:02d}"
         elif minutes > 0:
-            self.elapsed_time += f"{minutes} min., {seconds:02d} sec."
+            self.elapsed_time += f"{minutes}:{seconds:02d}"
         else:
             self.elapsed_time += f"{int(elapsed_time.total_seconds())} sec."
 
@@ -216,6 +231,14 @@ class AirQualityUtils:
             self._pm1_cf1[i].append(sample[i].pm10_cf1)
             self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
             self._pm10_cf1[i].append(sample[i].pm100_cf1)
+
+            # update particle counts
+            self._gr03um[i].append(sample[i].gr03um)
+            self._gr05um[i].append(sample[i].gr05um)
+            self._gr10um[i].append(sample[i].gr10um)
+            self._gr25um[i].append(sample[i].gr25um)
+            self._gr50um[i].append(sample[i].gr50um)
+            self._gr100um[i].append(sample[i].gr100um)
 
             # store sample into storage
             self._storage.write_pm(i, sample[i])
