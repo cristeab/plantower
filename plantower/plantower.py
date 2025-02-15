@@ -78,8 +78,6 @@ class Plantower(object):
             Setup the interface for the sensor
         """
         self.logger = logging.getLogger("PMS5003 Interface")
-        logging.basicConfig(
-            format='%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
         self.logger.setLevel(log_level)
         self.port = port
         self.logger.info("Serial port: %s", self.port)

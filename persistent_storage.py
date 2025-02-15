@@ -4,7 +4,7 @@ import influxdb_client, os, time
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
-from logger import configure_logger
+from logger import LoggerConfigurator
 
 
 class PersistentStorage:
@@ -14,7 +14,7 @@ class PersistentStorage:
     aqi_bucket="aqi"
 
     def __init__(self):
-        self._logger = configure_logger(self.__class__.__name__)
+        self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
         token = os.environ.get("INFLUX_TOKEN")
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)

@@ -10,7 +10,7 @@ from scipy import stats
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-from logger import configure_logger
+from logger import LoggerConfigurator
 
 
 class AirQualityUtils:
@@ -38,19 +38,27 @@ class AirQualityUtils:
     sensors_relative_error_percent = 0
     sensors_spearman_corr = 0
 
-    def __init__(self):
-        self._logger = configure_logger(self.__class__.__name__)
+    def __init__(self, serial_ports):
+        self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
 
         self.sample_count = 0
         self.lock = th.Lock()
         self._start_time = None
 
-        serial_ports = self._find_serial_ports()
+        all_serial_ports = self._find_serial_ports()
+        if not all(item in all_serial_ports for item in serial_ports):
+            self._logger.error(f'Provided serial port(s) {serial_ports} not found among the available serial port(s) {all_serial_ports}')
+            sys.exit(1)
+
         self._serial_port_count = len(serial_ports)
 
+        self._pm1_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
         self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
+        self._pm10_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
 
         self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(self._serial_port_count))
+        for pt in self._pt:
+            LoggerConfigurator.set_handler(pt.logger)
 
         if self.ENABLE_ACTIVE_MODE:
             print(f"Making sure the sensors are correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
@@ -121,37 +129,10 @@ class AirQualityUtils:
             self._logger.error('No matching serial ports found.')
             sys.exit(1)
 
-        # If only one port is found, use it automatically
-        if len(filtered_ports) == 1:
-            selected_port = filtered_ports[0].device
-            self._logger.info(f'Using sensor on port {selected_port}')
-            return selected_port
-
-        # If multiple ports are found, prompt the user to select one
-        print('Multiple serial ports found:')
+        serial_ports = []
         for i, port in enumerate(filtered_ports):
-            print(f'{i + 1}: {port.device}')
-
-        selected_ports = []
-        while True:
-            try:
-                choice = input('Select the desired ports by number (comma-separated): ')
-                choices = [int(x) for x in choice.split(',')]
-                for choice in choices:
-                    if 1 <= choice <= len(filtered_ports):
-                        if filtered_ports[choice - 1].device not in selected_ports:
-                            selected_ports.append(filtered_ports[choice - 1].device)
-                    else:
-                        print(f'Invalid choice: {choice}. Please enter numbers between 1 and {len(filtered_ports)}.')
-                        continue
-                if 0 < len(selected_ports):
-                    break
-                else:
-                    print('At least one port must be selected')
-            except ValueError:
-                print('Invalid input. Please enter numbers separated by commas.')
-
-        return selected_ports
+            serial_ports.append(port.device)
+        return serial_ports
 
     @staticmethod
     def _aqi_category(aqi):
@@ -231,8 +212,10 @@ class AirQualityUtils:
 
             timestamp = sample[i].timestamp
 
-            # update PM reading for accuracy computation
+            # update PM readings
+            self._pm1_cf1[i].append(sample[i].pm10_cf1)
             self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
+            self._pm10_cf1[i].append(sample[i].pm100_cf1)
 
             # store sample into storage
             self._storage.write_pm(i, sample[i])
