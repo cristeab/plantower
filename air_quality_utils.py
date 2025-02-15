@@ -56,6 +56,13 @@ class AirQualityUtils:
         self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
         self._pm10_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
 
+        self._gr03um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr05um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr10um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr25um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr50um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+        self._gr100um = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
+
         self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(self._serial_port_count))
         for pt in self._pt:
             LoggerConfigurator.set_handler(pt.logger)
@@ -216,6 +223,14 @@ class AirQualityUtils:
             self._pm1_cf1[i].append(sample[i].pm10_cf1)
             self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
             self._pm10_cf1[i].append(sample[i].pm100_cf1)
+
+            # update particle counts
+            self._gr03um[i].append(sample[i].gr03um)
+            self._gr05um[i].append(sample[i].gr05um)
+            self._gr10um[i].append(sample[i].gr10um)
+            self._gr25um[i].append(sample[i].gr25um)
+            self._gr50um[i].append(sample[i].gr50um)
+            self._gr100um[i].append(sample[i].gr100um)
 
             # store sample into storage
             self._storage.write_pm(i, sample[i])
