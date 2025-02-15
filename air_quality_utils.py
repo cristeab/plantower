@@ -10,7 +10,7 @@ from scipy import stats
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-from logger import configure_logger
+from logger import LoggerConfigurator
 
 
 class AirQualityUtils:
@@ -39,7 +39,7 @@ class AirQualityUtils:
     sensors_spearman_corr = 0
 
     def __init__(self):
-        self._logger = configure_logger(self.__class__.__name__)
+        self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
 
         self.sample_count = 0
         self.lock = th.Lock()
@@ -48,9 +48,13 @@ class AirQualityUtils:
         serial_ports = self._find_serial_ports()
         self._serial_port_count = len(serial_ports)
 
+        self._pm1_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
         self._pm2_5_cf1 = tuple(deque(maxlen=self.MAX_ACCURACY_SENSOR_READINGS_LENGTH) for _ in range(self._serial_port_count))
+        self._pm10_cf1 = tuple(deque(maxlen=1) for _ in range(self._serial_port_count))
 
         self._pt = tuple(plantower.Plantower(serial_ports[i]) for i in range(self._serial_port_count))
+        for pt in self._pt:
+            LoggerConfigurator.set_handler(pt.logger)
 
         if self.ENABLE_ACTIVE_MODE:
             print(f"Making sure the sensors are correctly setup for active mode. Please wait {self.WAKEUP_DELAY_SEC} sec...")
@@ -231,8 +235,10 @@ class AirQualityUtils:
 
             timestamp = sample[i].timestamp
 
-            # update PM reading for accuracy computation
+            # update PM readings
+            self._pm1_cf1[i].append(sample[i].pm10_cf1)
             self._pm2_5_cf1[i].append(sample[i].pm25_cf1)
+            self._pm10_cf1[i].append(sample[i].pm100_cf1)
 
             # store sample into storage
             self._storage.write_pm(i, sample[i])
