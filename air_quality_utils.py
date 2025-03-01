@@ -41,6 +41,9 @@ class AirQualityUtils:
     def __init__(self, serial_ports):
         self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
 
+        # make sure the storage is available before configuring the sensors
+        self._storage = PersistentStorage()
+
         self.sample_count = 0
         self.lock = th.Lock()
         self._start_time = None
@@ -88,7 +91,6 @@ class AirQualityUtils:
                 print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
             print(f"\nDone")
 
-        self._storage = PersistentStorage()
         self._start_continuous_update()
 
     def _add_pm25_reading(self, current_time, value):
@@ -145,7 +147,7 @@ class AirQualityUtils:
             None
 
         serial_ports = []
-        for i, port in enumerate(filtered_ports):
+        for _, port in enumerate(filtered_ports):
             serial_ports.append(port.device)
         return serial_ports
 
