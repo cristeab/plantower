@@ -5,6 +5,7 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
 from logger import LoggerConfigurator
+import sys
 
 
 class PersistentStorage:
@@ -16,8 +17,24 @@ class PersistentStorage:
     def __init__(self):
         self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
         token = os.environ.get("INFLUX_TOKEN")
+        if not token:
+            print("Error: INFLUX_TOKEN environment variable is not set.")
+            sys.exit(1)
         self._write_client = influxdb_client.InfluxDBClient(url=self.url, token=token, org=self.org)
         self._write_api = self._write_client.write_api(write_options=SYNCHRONOUS)
+        self._verify_token()
+
+    def _verify_token(self):
+        try:
+            test_point = Point("test").field("test_field", 1)
+            self._write_api.write(bucket=self.pm_bucket, org=self.org, record=test_point)
+            print("Token verification successful.")
+        except InfluxDBError as e:
+            print(f"Token verification failed: {e}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"An unexpected error occurred during token verification: {e}")
+            sys.exit(1)
 
     def write_pm(self, i, sample):
         point = (
