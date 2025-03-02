@@ -8,7 +8,7 @@ from collections import deque
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-from logger import LoggerConfigurator
+from plantower.logger_configurator import LoggerConfigurator
 
 
 class AirQualityUtilsMono:
