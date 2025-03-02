@@ -85,10 +85,10 @@ class PersistentStorage:
         data = {}
         for table in tables:
             for record in table.records:
-                local_time = record.get_time().astimezone().isoformat()
+                local_time = record.get_time().astimezone().strftime('%d/%m/%Y, %H:%M:%S')
                 data["time"] = local_time
                 data[record.get_field()] = record.get_value()
-        return json.dumps(data)
+        return data
 
     def read_pm(self, i: int):
         query = f'from(bucket:"{self.Bucket.PM.value}") |> range(start: -1m) |> filter(fn: (r) => r._measurement == "air_quality_data_{i}") |> last()'
