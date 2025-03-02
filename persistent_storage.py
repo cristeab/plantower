@@ -85,7 +85,8 @@ class PersistentStorage:
         data = {}
         for table in tables:
             for record in table.records:
-                data["time"] = record.get_time().isoformat()
+                local_time = record.get_time().astimezone().isoformat()
+                data["time"] = local_time
                 data[record.get_field()] = record.get_value()
         return json.dumps(data)
 
