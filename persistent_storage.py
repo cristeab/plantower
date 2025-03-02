@@ -5,7 +5,9 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
 from logger import LoggerConfigurator
+from enum import Enum
 import sys
+import json
 
 
 class PersistentStorage:
@@ -13,6 +15,10 @@ class PersistentStorage:
     url = "http://localhost:8086"
     pm_bucket="pm"
     aqi_bucket="aqi"
+
+    class Bucket(Enum):
+        PM = "pm"
+        AQI = "aqi"
 
     def __init__(self):
         self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
@@ -82,3 +88,20 @@ class PersistentStorage:
                 self._logger.error(f"An error occurred while writing data: {e}")
         except Exception as e:
             self._logger.error(f"An unexpected error occurred: {e}")
+
+    def read(self, bucket: Bucket, i: int):
+        query = f'from(bucket:"{bucket.value}") |> range(start: -1m) |> filter(fn: (r) => r._measurement == "air_quality_data_{i}") |> last()'
+        tables = self._write_client.query_api().query(query)
+        data = {}
+        for table in tables:
+            for record in table.records:
+                data["time"] = record.get_time().isoformat()
+                data[record.get_field()] = record.get_value()
+        return json.dumps(data)
+
+
+if __name__ == "__main__":
+    storage = PersistentStorage()
+    for i in range(2):
+        data = storage.read(PersistentStorage.Bucket.PM, i)
+        print(data)
