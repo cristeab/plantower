@@ -89,14 +89,20 @@ class PersistentStorage:
         self._write(self.Bucket.Noise, point)
 
     def _read(self, query):
-        tables = self._write_client.query_api().query(query)
-        data = {}
-        for table in tables:
-            for record in table.records:
-                local_time = record.get_time().astimezone().strftime('%d/%m/%Y, %H:%M:%S')
-                data["time"] = local_time
-                data[record.get_field()] = record.get_value()
-        return data
+        try:
+            tables = self._write_client.query_api().query(query)
+            data = {}
+            for table in tables:
+                for record in table.records:
+                    local_time = record.get_time().astimezone().strftime('%d/%m/%Y, %H:%M:%S')
+                    data["time"] = local_time
+                    data[record.get_field()] = record.get_value()
+            return data
+        except InfluxDBError as e:
+            self._logger.error(f"InfluxDB query error: {e}")
+        except Exception as e:
+            self._logger.error(f"An unexpected error occurred during query execution: {e}")
+        return None
 
     def read_pm(self, i: int):
         query = f'from(bucket:"{self.Bucket.PM.value}") |> range(start: -1m) |> filter(fn: (r) => r._measurement == "air_quality_data_{i}") |> last()'
