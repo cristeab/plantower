@@ -16,6 +16,7 @@ class PersistentStorage:
     class Bucket(Enum):
         PM = "pm"
         AQI = "aqi"
+        Noise = "noise"
 
     def __init__(self):
         self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
