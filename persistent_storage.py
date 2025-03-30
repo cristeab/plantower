@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import influxdb_client, os, time
-from influxdb_client import InfluxDBClient, Point
+from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
 from plantower.logger_configurator import LoggerConfigurator
 from enum import Enum
 import sys
-import json
 
 
 class PersistentStorage:
@@ -80,6 +79,14 @@ class PersistentStorage:
         )
         self._write(self.Bucket.AQI, point)
 
+    def write_noise_level(self, timestamp, noise_level):
+        point = (
+            Point("noise_level")
+            .time(timestamp)
+            .field("noise_level", noise_level)
+        )
+        self._write(self.Bucket.Noise, point)
+
     def _read(self, query):
         tables = self._write_client.query_api().query(query)
         data = {}
@@ -96,6 +103,10 @@ class PersistentStorage:
 
     def read_aqi(self):
         query = f'from(bucket:"{self.Bucket.AQI.value}") |> range(start: -1m) |> filter(fn: (r) => r._measurement == "air_quality_data") |> last()'
+        return self._read(query)
+
+    def read_noise_level(self):
+        query = f'from(bucket:"{self.Bucket.Noise.value}") |> range(start: -1m) |> filter(fn: (r) => r._measurement == "noise_level") |> last()'
         return self._read(query)
 
 
