@@ -4,7 +4,7 @@ import influxdb_client, os, time
 from influxdb_client import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.exceptions import InfluxDBError
-from plantower.logger_configurator import LoggerConfigurator
+from .logger_configurator import LoggerConfigurator
 from enum import Enum
 import sys
 

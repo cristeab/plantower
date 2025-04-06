@@ -10,7 +10,7 @@ from scipy import stats
 from datetime import timedelta
 import threading as th
 from persistent_storage import PersistentStorage
-from plantower.logger_configurator import LoggerConfigurator
+from logger_configurator import LoggerConfigurator
 
 
 class AirQualityUtils:
