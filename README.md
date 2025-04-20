@@ -1,25 +1,13 @@
 # 10 minutes Air Quality Index (AQI) computation
-Python scripts for reading data from air quality sensors in passive mode, compute 10 min AQI and show the data. The read data and the computed AQI are stored in a time series database (InfluxDB).
+Python scripts for reading data from air quality sensors in passive mode, compute 10 min AQI and plot the data.
 
-- air_quality.py: main script for computing the AQI with data from multiple sensors. The current data is shown in the command line and saved into the database.
-
-- air_quality_utils.py: contains a class with utilities for AQI computation when data is received from multiple sensors
-
-- persistent_storage.py: contains the class for storing data into the persistent storage
-
-- air_quality_mono.py: helper script for displaying graphically the data obtained from one sensor
+- air_quality_mono.py: script for displaying graphically the data obtained from one sensor
 
 - air_quality_utils_mono.py: contains a class with utilities for AQI computation when data is received from one sensor and graphically displayed
 
 The scripts have been tested on Debian 12 and use a slighty modified version of the interface below.
 
-## Bill of Materials
-
-| Quantity | Item |
-|--------------|----------|
-| 2            | Adapter 4P G7A to G135 and 4pin 2.54mm conversion module G7 G10 G1 G3 G5 laser PM2.5 sensor exchange PLANTOWER |
-| 2            | TZT FT232BL FT232RL Basic Breakout Board FTDI FT232 USB TO TTL 5V 3.3V Debugger Download Cable To Serial Adapter Module |
-| 2            | PLANTOWER PMSA003 Laser PM2.5 DUST SENSOR PM2.5 digital last dust particles PMSA 003 sensor |
+An usage example can be found [here](https://github.com/cristeab/aq_dashboard).
 
 ## Sample output
 

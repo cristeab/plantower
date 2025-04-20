@@ -7,8 +7,6 @@ import time
 from collections import deque
 from datetime import timedelta
 import threading as th
-from persistent_storage import PersistentStorage
-from plantower.logger_configurator import LoggerConfigurator
 
 
 class AirQualityUtilsMono:
@@ -61,8 +59,6 @@ class AirQualityUtilsMono:
     plot_aqi = deque(maxlen=MAX_AQI_QUEUE_LENGTH)
 
     def __init__(self):
-        self._logger = LoggerConfigurator.configure_logger(self.__class__.__name__)
-
         self.lock = th.Lock()
         self._start_time = None
         serial_port = self._find_serial_port()
@@ -83,10 +79,7 @@ class AirQualityUtilsMono:
             new_serial_port = self._find_serial_port()
             if new_serial_port != serial_port:
                 self._pt = plantower.Plantower(new_serial_port)
-        
-        LoggerConfigurator.set_handler(self._pt.logger)
-        
-        self._storage = PersistentStorage()
+
         self._start_continuous_update()
 
     def _add_pm25_reading(self, current_time, value):
@@ -236,9 +229,6 @@ class AirQualityUtilsMono:
 
         self._update_elapsed_time(sample.timestamp)
 
-        # store sample into storage
-        self._storage.write_pm(0, sample)
-
     def _continuous_update(self):
         while True:
             aqi = self._calculate_nowcast_aqi()
@@ -251,8 +241,6 @@ class AirQualityUtilsMono:
                 timestamp = self.pm_timestamps[-1]
                 self.aqi_timestamps.append(timestamp)
                 self.plot_aqi.append(aqi)
-                # store into persistent storage
-                self._storage.write_aqi(timestamp, aqi)
 
             time.sleep(1)  # Update every second
 

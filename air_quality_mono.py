@@ -8,7 +8,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from statistics import mean
-import time
 
 
 aq_utils = AirQualityUtilsMono()
