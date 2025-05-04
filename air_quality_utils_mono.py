@@ -74,7 +74,7 @@ class AirQualityUtilsMono:
             for s in range(0, self.WAKEUP_DELAY_SEC):
                 time.sleep(1)
                 print(f"\rElapsed seconds: {s + 1}", end="", flush=True)
-            print(f"\nDone")
+            print("\nDone")
 
             new_serial_port = self._find_serial_port()
             if new_serial_port != serial_port:

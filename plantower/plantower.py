@@ -127,11 +127,11 @@ class Plantower(object):
             item in the buffer
         """
         recv = b''
-        start = datetime.utcnow() #Start timer
+        start = datetime.now(timezone.utc) #Start timer
         if perform_flush:
             self.serial.reset_input_buffer()  #Flush any data in the buffer
         while(
-                datetime.utcnow() <
+                datetime.now(timezone.utc) <
                 (start + timedelta(seconds=self.read_timeout))):
             inp = self.serial.read() # Read a character from the input
             if inp == MSG_CHAR_1: # check it matches
