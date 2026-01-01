@@ -3,14 +3,14 @@
     Basic test script to demonstrate active mode of the plantower
 """
 
-from air_quality_utils_mono import AirQualityUtilsMono
+from dust_sensor_utils_mono import DustSensorUtilsMono
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from statistics import mean
 
 
-aq_utils = AirQualityUtilsMono()
+aq_utils = DustSensorUtilsMono()
 
 # Set up the plot
 matplotlib.use('TkAgg')

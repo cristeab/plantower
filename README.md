@@ -1,9 +1,9 @@
 # 10 minutes Air Quality Index (AQI) computation
 Python scripts for reading data from air quality sensors in passive mode, compute 10 min AQI and plot the data.
 
-- air_quality_mono.py: script for displaying graphically the data obtained from one sensor
+- dust_sensor_mono.py: script for displaying graphically the data obtained from one sensor
 
-- air_quality_utils_mono.py: contains a class with utilities for AQI computation when data is received from one sensor and graphically displayed
+- dust_sensor_utils_mono.py: contains a class with utilities for AQI computation when data is received from one sensor and graphically displayed
 
 The scripts have been tested on Debian 12 and use a slighty modified version of the interface below.
 

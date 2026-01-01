@@ -9,7 +9,7 @@ from datetime import timedelta
 import threading as th
 
 
-class AirQualityUtilsMono:
+class DustSensorUtilsMono:
     ENABLE_ACTIVE_MODE = True
     MAX_QUEUE_LENGTH = 100
     MAX_AQI_QUEUE_LENGTH = 10000
@@ -234,7 +234,7 @@ class AirQualityUtilsMono:
             aqi = self._calculate_nowcast_aqi()
             if aqi is None:
                 continue
-            category = AirQualityUtilsMono._aqi_category(aqi)
+            category = DustSensorUtilsMono._aqi_category(aqi)
             self.aqi = f"{int(self.MEASUREMENT_WINDOW_LENGTH_SEC / 60)} min AQI: {aqi:.2f} | {category}"
 
             with self.lock:
